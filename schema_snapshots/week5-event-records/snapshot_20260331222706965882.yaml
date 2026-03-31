@@ -1,0 +1,111 @@
+bitol_version: 1.1.0
+id: week5-event-records
+name: Week5 Event Records
+owner: data-governance-team
+description: Generated contract for week5-event-records
+lineage:
+  downstream:
+  - id: file::src/__init__.py
+    type: FILE
+  - id: file::function:src/orchestrator.py::__init__
+    type: FILE
+  - id: file::src/orchestrator.py
+    type: FILE
+columns:
+- name: event_id
+  data_type: string
+  description: Field representing event_id.
+  llm_annotations: []
+- name: event_type
+  data_type: string
+  description: Field representing event_type.
+  llm_annotations: []
+- name: entity_id
+  data_type: string
+  description: Unique identifier for the domain entity.
+  llm_annotations: []
+- name: entity_type
+  data_type: string
+  description: Field representing aggregate_type.
+  llm_annotations: []
+- name: sequence_number
+  data_type: number
+  description: Field representing sequence_number.
+  llm_annotations: []
+- name: payload
+  data_type: string
+  description: The structured data content of the event.
+  llm_annotations:
+  - ambiguous
+- name: metadata
+  data_type: string
+  description: Field representing metadata.
+  llm_annotations:
+  - ambiguous
+- name: schema_version
+  data_type: string
+  description: Field representing schema_version.
+  llm_annotations: []
+- name: timestamp
+  data_type: string
+  description: When the domain event actually occurred.
+  llm_annotations: []
+- name: recorded_at
+  data_type: string
+  description: Field representing recorded_at.
+  llm_annotations: []
+checks:
+- check_id: not_null_event_id
+  column_name: event_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_event_type
+  column_name: event_type
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_entity_id
+  column_name: entity_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_entity_type
+  column_name: entity_type
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_sequence_number
+  column_name: sequence_number
+  check_type: not_null
+  severity: CRITICAL
+- check_id: range_sequence_number
+  column_name: sequence_number
+  check_type: range
+  params:
+    min: 1.0
+    max: 14.0
+  severity: WARN
+- check_id: mean_drift_sequence_number
+  column_name: sequence_number
+  check_type: drift
+  params:
+    baseline_mean: 5.769926047658176
+    std_dev: 3.385531727330789
+  severity: WARN
+- check_id: not_null_payload
+  column_name: payload
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_metadata
+  column_name: metadata
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_schema_version
+  column_name: schema_version
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_timestamp
+  column_name: timestamp
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_recorded_at
+  column_name: recorded_at
+  check_type: not_null
+  severity: CRITICAL

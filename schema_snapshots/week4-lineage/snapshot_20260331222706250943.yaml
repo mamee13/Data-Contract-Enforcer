@@ -1,0 +1,63 @@
+bitol_version: 1.1.0
+id: week4-lineage
+name: Week4 Lineage
+owner: data-governance-team
+description: Generated contract for week4-lineage
+lineage:
+  downstream:
+  - id: file::src/__init__.py
+    type: FILE
+  - id: file::function:src/orchestrator.py::__init__
+    type: FILE
+  - id: file::src/orchestrator.py
+    type: FILE
+columns:
+- name: snapshot_id
+  data_type: string
+  description: Field representing snapshot_id.
+  llm_annotations: []
+- name: codebase_root
+  data_type: string
+  description: Field representing codebase_root.
+  llm_annotations: []
+- name: git_commit
+  data_type: string
+  description: Field representing git_commit.
+  llm_annotations: []
+- name: nodes
+  data_type: string
+  description: Field representing nodes.
+  llm_annotations: []
+- name: edges
+  data_type: string
+  description: Field representing edges.
+  llm_annotations: []
+- name: captured_at
+  data_type: string
+  description: Field representing captured_at.
+  llm_annotations: []
+checks:
+- check_id: not_null_snapshot_id
+  column_name: snapshot_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_codebase_root
+  column_name: codebase_root
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_git_commit
+  column_name: git_commit
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_nodes
+  column_name: nodes
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_edges
+  column_name: edges
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_captured_at
+  column_name: captured_at
+  check_type: not_null
+  severity: CRITICAL

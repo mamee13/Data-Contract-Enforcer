@@ -1,0 +1,40 @@
+version: 2
+models:
+- name: week3-document-refinery-extractions
+  columns:
+  - name: doc_id
+    description: Field representing doc_id.
+    tests:
+    - not_null
+  - name: source_path
+    description: Field representing source_path.
+    tests:
+    - not_null
+  - name: source_hash
+    description: Field representing source_hash.
+    tests:
+    - not_null
+  - name: extracted_facts
+    description: Field representing extracted_facts.
+    tests:
+    - not_null
+  - name: entities
+    description: Field representing entities.
+    tests:
+    - not_null
+  - name: extraction_model
+    description: Field representing extraction_model.
+    tests:
+    - not_null
+  - name: processing_time_ms
+    description: Field representing processing_time_ms.
+    tests:
+    - not_null
+  - name: token_count
+    description: Field representing token_count.
+    tests:
+    - not_null
+  - name: extracted_at
+    description: Field representing extracted_at.
+    tests:
+    - not_null

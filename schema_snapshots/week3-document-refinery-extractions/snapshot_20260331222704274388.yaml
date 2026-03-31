@@ -1,0 +1,101 @@
+bitol_version: 1.1.0
+id: week3-document-refinery-extractions
+name: Week3 Document Refinery Extractions
+owner: data-governance-team
+description: Generated contract for week3-document-refinery-extractions
+lineage:
+  downstream:
+  - id: file::src/__init__.py
+    type: FILE
+  - id: file::function:src/orchestrator.py::__init__
+    type: FILE
+  - id: file::src/orchestrator.py
+    type: FILE
+columns:
+- name: doc_id
+  data_type: string
+  description: Field representing doc_id.
+  llm_annotations: []
+- name: source_path
+  data_type: string
+  description: Field representing source_path.
+  llm_annotations: []
+- name: source_hash
+  data_type: string
+  description: Field representing source_hash.
+  llm_annotations: []
+- name: extracted_facts
+  data_type: string
+  description: Field representing extracted_facts.
+  llm_annotations: []
+- name: entities
+  data_type: string
+  description: Field representing entities.
+  llm_annotations: []
+- name: extraction_model
+  data_type: string
+  description: Field representing extraction_model.
+  llm_annotations: []
+- name: processing_time_ms
+  data_type: number
+  description: Field representing processing_time_ms.
+  llm_annotations: []
+- name: token_count
+  data_type: string
+  description: Field representing token_count.
+  llm_annotations: []
+- name: extracted_at
+  data_type: string
+  description: Field representing extracted_at.
+  llm_annotations: []
+checks:
+- check_id: not_null_doc_id
+  column_name: doc_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_source_path
+  column_name: source_path
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_source_hash
+  column_name: source_hash
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_extracted_facts
+  column_name: extracted_facts
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_entities
+  column_name: entities
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_extraction_model
+  column_name: extraction_model
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_processing_time_ms
+  column_name: processing_time_ms
+  check_type: not_null
+  severity: CRITICAL
+- check_id: range_processing_time_ms
+  column_name: processing_time_ms
+  check_type: range
+  params:
+    min: 841.0
+    max: 1776560.0
+  severity: WARN
+- check_id: mean_drift_processing_time_ms
+  column_name: processing_time_ms
+  check_type: drift
+  params:
+    baseline_mean: 1053386.3134328357
+    std_dev: 779861.3742322059
+  severity: WARN
+- check_id: not_null_token_count
+  column_name: token_count
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_extracted_at
+  column_name: extracted_at
+  check_type: not_null
+  severity: CRITICAL

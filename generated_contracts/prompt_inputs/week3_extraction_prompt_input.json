@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "doc_id": {
+      "type": "string",
+      "description": "Field representing doc_id."
+    },
+    "source_path": {
+      "type": "string",
+      "description": "Field representing source_path."
+    },
+    "source_hash": {
+      "type": "string",
+      "description": "Field representing source_hash."
+    },
+    "extracted_facts": {
+      "type": "string",
+      "description": "Field representing extracted_facts."
+    },
+    "entities": {
+      "type": "string",
+      "description": "Field representing entities."
+    },
+    "extraction_model": {
+      "type": "string",
+      "description": "Field representing extraction_model."
+    },
+    "processing_time_ms": {
+      "type": "number",
+      "description": "Field representing processing_time_ms."
+    },
+    "token_count": {
+      "type": "string",
+      "description": "Field representing token_count."
+    },
+    "extracted_at": {
+      "type": "string",
+      "description": "Field representing extracted_at."
+    }
+  },
+  "required": [
+    "doc_id"
+  ]
+}

@@ -1,0 +1,44 @@
+version: 2
+models:
+- name: week5-event-records
+  columns:
+  - name: event_id
+    description: Field representing event_id.
+    tests:
+    - not_null
+  - name: event_type
+    description: Field representing event_type.
+    tests:
+    - not_null
+  - name: entity_id
+    description: Unique identifier for the domain entity.
+    tests:
+    - not_null
+  - name: entity_type
+    description: Field representing aggregate_type.
+    tests:
+    - not_null
+  - name: sequence_number
+    description: Field representing sequence_number.
+    tests:
+    - not_null
+  - name: payload
+    description: The structured data content of the event.
+    tests:
+    - not_null
+  - name: metadata
+    description: Field representing metadata.
+    tests:
+    - not_null
+  - name: schema_version
+    description: Field representing schema_version.
+    tests:
+    - not_null
+  - name: timestamp
+    description: When the domain event actually occurred.
+    tests:
+    - not_null
+  - name: recorded_at
+    description: Field representing recorded_at.
+    tests:
+    - not_null

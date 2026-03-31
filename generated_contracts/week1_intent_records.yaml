@@ -1,0 +1,55 @@
+bitol_version: 1.1.0
+id: week1-intent-records
+name: Week1 Intent Records
+owner: data-governance-team
+description: Generated contract for week1-intent-records
+lineage:
+  downstream:
+  - id: file::src/__init__.py
+    type: FILE
+  - id: file::function:src/orchestrator.py::__init__
+    type: FILE
+  - id: file::src/orchestrator.py
+    type: FILE
+columns:
+- name: intent_id
+  data_type: string
+  description: Unique identifier for the intent record.
+  llm_annotations: []
+- name: description
+  data_type: string
+  description: Field representing description.
+  llm_annotations: []
+- name: code_refs
+  data_type: string
+  description: Field representing code_refs.
+  llm_annotations: []
+- name: governance_tags
+  data_type: string
+  description: Field representing governance_tags.
+  llm_annotations: []
+- name: created_at
+  data_type: string
+  description: Field representing created_at.
+  llm_annotations: []
+checks:
+- check_id: not_null_intent_id
+  column_name: intent_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_description
+  column_name: description
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_code_refs
+  column_name: code_refs
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_governance_tags
+  column_name: governance_tags
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_created_at
+  column_name: created_at
+  check_type: not_null
+  severity: CRITICAL
