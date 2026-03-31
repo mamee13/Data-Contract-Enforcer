@@ -1,0 +1,29 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Other week repositories (not part of Week 7)
+agentic-event-ledger/
+automaton-auditor-swarm/
+brownfield-codebase-cartographer/
+"The Document Intelligence Refinery"/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ruff cache
+.ruff_cache/
+
+# Environment files
+.env
+.env.local
