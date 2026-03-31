@@ -13,7 +13,7 @@ wheels/
 agentic-event-ledger/
 automaton-auditor-swarm/
 brownfield-codebase-cartographer/
-"The Document Intelligence Refinery"/
+The Document Intelligence Refinery/
 
 # IDE and editor
 .idea/
@@ -27,3 +27,24 @@ brownfield-codebase-cartographer/
 # Environment files
 .env
 .env.local
+
+# Python version
+.python-version
+
+# Dependencies
+pyproject.toml
+uv.lock
+
+# Challenge docs (not part of repo)
+TRP1*.md
+plan.md
+
+# Misc
+agent_trace.jsonl
+checklist.md
+main.py
+.pytest_cache/
+mypy_cache/
+
+# Output files - large data, optional to track
+outputs/
