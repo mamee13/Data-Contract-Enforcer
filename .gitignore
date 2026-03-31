@@ -40,11 +40,5 @@ TRP1*.md
 plan.md
 
 # Misc
-agent_trace.jsonl
-checklist.md
-main.py
 .pytest_cache/
 mypy_cache/
-
-# Output files - large data, optional to track
-outputs/
