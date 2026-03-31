@@ -39,6 +39,6 @@ uv.lock
 TRP1*.md
 plan.md
 
-# Misc
-.pytest_cache/
-mypy_cache/
+# Derived/large output artifacts
+outputs/week3/extractions_violated.jsonl
+schema_snapshots/embedding_baselines.npz

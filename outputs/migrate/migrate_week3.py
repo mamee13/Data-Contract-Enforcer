@@ -61,7 +61,6 @@ import hashlib
 import uuid
 import re
 from pathlib import Path
-from collections import defaultdict
 
 EXTRACTED_DIR = Path("The Document Intelligence Refinery/.refinery/extracted")
 LEDGER = Path("The Document Intelligence Refinery/.refinery/extraction_ledger.jsonl")

@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-03-31T20:43:56.929202",
+  "period": "2026-03-24 to 2026-03-31",
+  "data_health_score": 72,
+  "health_narrative": "Good data health. Some warnings need attention.",
+  "violations_this_week": {
+    "by_severity": {
+      "CRITICAL": 1,
+      "HIGH": 1,
+      "MEDIUM": 0,
+      "LOW": 0
+    },
+    "total": 2,
+    "top_3": [
+      {
+        "severity": "CRITICAL",
+        "check_id": "range_extracted_facts_confidence",
+        "column_name": "extracted_facts[*].confidence",
+        "records_failing": 3791,
+        "plain_language": "The extracted_facts[*].confidence field failed its range_extracted_facts_confidence check. Expected min>=0.0, max<=1.0 but found min=55.0, max=95.0. This affects 3791 records."
+      },
+      {
+        "severity": "HIGH",
+        "check_id": "mean_drift_extracted_facts_confidence",
+        "column_name": "extracted_facts[*].confidence",
+        "records_failing": 0,
+        "plain_language": "The extracted_facts[*].confidence field failed its mean_drift_extracted_facts_confidence check. Expected drift < 2 stddev but found mean=94.98944869427592, z_score=1880.79. This affects 0 records."
+      }
+    ]
+  },
+  "schema_changes": [],
+  "ai_system_risk": {
+    "embedding_drift_score": 0.0,
+    "embedding_drift_status": "PASS",
+    "llm_output_violation_rate": 0.0,
+    "llm_output_trend": "stable",
+    "status": "PASS"
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Fix confidence scale in Week 3 extraction code",
+      "file": "src/week3/extractor.py",
+      "reason": "CRITICAL violation affecting downstream consumers"
+    },
+    {
+      "priority": 3,
+      "action": "Run ContractGenerator to update contracts",
+      "file": "contracts/generator.py",
+      "reason": "Ensure contracts reflect current schema"
+    }
+  ],
+  "total_validation_reports": 3,
+  "total_violations_logged": 3
+}

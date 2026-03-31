@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-03-31T20:40:01.214935",
+  "extensions": {
+    "embedding_drift": {
+      "status": "PASS",
+      "drift_score": 0.0,
+      "threshold": 0.15,
+      "interpretation": "stable"
+    },
+    "prompt_input": {
+      "total_records": 134,
+      "valid_count": 134,
+      "quarantined_count": 0,
+      "quarantine_file": null,
+      "status": "PASS"
+    },
+    "llm_output_schema": {
+      "total_outputs": 1,
+      "schema_violations": 0,
+      "violation_rate": 0.0,
+      "baseline_violation_rate": 0.0,
+      "trend": "stable",
+      "status": "PASS"
+    },
+    "trace_schema": {
+      "total_traces": 2208,
+      "violations": 0,
+      "violation_rate": 0.0,
+      "status": "PASS",
+      "sample_violations": []
+    }
+  },
+  "overall_status": "PASS"
+}

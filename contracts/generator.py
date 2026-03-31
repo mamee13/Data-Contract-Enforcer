@@ -83,14 +83,14 @@ class ContractGenerator:
         for col in self.df.columns:
             mapped_name = overrides.get(col, col)
             dtype = str(self.df[col].dtype)
-            
+
             columns.append({
                 "name": mapped_name,
                 "data_type": "string" if "object" in dtype else "number" if ("float" in dtype or "int" in dtype) else "boolean",
                 "description": self._get_description(col),
                 "llm_annotations": ["ambiguous"] if col in ["meta", "payload", "metadata"] else []
             })
-            
+
             # Structural check: Not Null
             checks.append({
                 "check_id": f"not_null_{mapped_name}",
@@ -152,7 +152,7 @@ class ContractGenerator:
         # Extra artifacts
         if self.contract_id in ["week3-document-refinery-extractions", "week5-event-records"]:
             self.generate_dbt_schema(columns)
-        
+
         if self.contract_id == "week3-document-refinery-extractions":
             self.generate_prompt_input_schema(columns)
 
@@ -172,7 +172,7 @@ class ContractGenerator:
         prompt_dir = "generated_contracts/prompt_inputs"
         os.makedirs(prompt_dir, exist_ok=True)
         prompt_path = f"{prompt_dir}/week3_extraction_prompt_input.json"
-        
+
         properties = {c["name"]: {"type": "string" if c["data_type"] == "string" else "number", "description": c["description"]} for c in columns}
         prompt_schema = {
             "$schema": "http://json-schema.org/draft-07/schema#",
