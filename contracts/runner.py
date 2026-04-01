@@ -77,41 +77,26 @@ class ValidationRunner:
 
         self.data = pd.DataFrame(self.records)
 
-    def _extract_nested_values(self, path_pattern: str) -> list:
-        """Extract values from nested structures using a path pattern."""
+    def _extract_nested_values(self, path_pattern: str, include_missing_as_none: bool = False) -> list:
+        """Extract values from nested structures by parsing the path pattern dynamically.
+
+        Supports patterns like "array_key[*].field_name". Falls back to top-level
+        column lookup for plain column names.
+        """
         values = []
 
-        for record in self.records:
-            if path_pattern == "extracted_facts[*].confidence":
-                for fact in record.get("extracted_facts", []):
-                    if "confidence" in fact:
-                        values.append(fact["confidence"])
-
-            elif path_pattern == "extracted_facts[*].fact_id":
-                for fact in record.get("extracted_facts", []):
-                    if "fact_id" in fact:
-                        values.append(fact["fact_id"])
-
-            elif path_pattern == "extracted_facts[*].page_ref":
-                for fact in record.get("extracted_facts", []):
-                    if "page_ref" in fact:
-                        values.append(fact["page_ref"])
-
-            elif path_pattern == "entities[*].entity_id":
-                for entity in record.get("entities", []):
-                    if "entity_id" in entity:
-                        values.append(entity["entity_id"])
-
-            elif path_pattern == "entities[*].name":
-                for entity in record.get("entities", []):
-                    values.append(entity.get("name"))  # include None for not_null check
-
-            elif path_pattern == "entities[*].type":
-                for entity in record.get("entities", []):
-                    if "type" in entity:
-                        values.append(entity["type"])
-
-            elif path_pattern in record:
+        if "[*]." in path_pattern:
+            # e.g. "extracted_facts[*].confidence"
+            array_part, field = path_pattern.split("[*].", 1)
+            for record in self.records:
+                for item in record.get(array_part, []):
+                    if isinstance(item, dict):
+                        if field in item or include_missing_as_none:
+                            values.append(item.get(field))
+        else:
+            # Plain top-level column — shouldn't normally reach here since
+            # self.data.columns is checked first, but handle gracefully.
+            for record in self.records:
                 val = record.get(path_pattern)
                 if val is not None:
                     if isinstance(val, list):
@@ -166,6 +151,10 @@ class ValidationRunner:
                     self._check_temporal_gte(column_name, params, result)
                 elif check_type == "monotonic_per_group":
                     self._check_monotonic_per_group(column_name, params, result)
+                elif check_type == "array_not_empty":
+                    self._check_array_not_empty(column_name, result)
+                elif check_type == "unique_within_group":
+                    self._check_unique_within_group(column_name, params, result)
                 else:
                     result["status"] = "ERROR"
                     result["message"] = f"Unknown check type: {check_type}"
@@ -181,17 +170,19 @@ class ValidationRunner:
         total_count = len(self.records)
 
         if column_name in self.data.columns:
-            null_count = self.data[column_name].isna().sum()
+            null_count = int(self.data[column_name].isna().sum())
         else:
-            nested_vals = self._extract_nested_values(column_name)
-            if not nested_vals:
+            nested_vals = self._extract_nested_values(column_name, include_missing_as_none=True)
+            if not nested_vals and "[*]" not in column_name:
                 result["status"] = "ERROR"
                 result["message"] = f"Column {column_name} not found in data"
                 return
+            null_count = sum(1 for v in nested_vals if v is None)
+            total_count = len(nested_vals)
 
         if null_count > 0:
             result["status"] = "FAIL"
-            result["records_failing"] = int(null_count)
+            result["records_failing"] = null_count
             result["message"] = f"{null_count} of {total_count} records have null {column_name}"
             result["actual_value"] = f"null_count={null_count}"
         else:
@@ -446,6 +437,59 @@ class ValidationRunner:
             result["actual_value"] = "all groups monotonic"
 
         result["expected"] = f"{column_name} monotonically increasing per {group_by}"
+
+    def _check_array_not_empty(self, column_name: str, result: dict):
+        """Check that array column contains at least one element in every record."""
+        if column_name not in self.data.columns:
+            result["status"] = "ERROR"
+            result["message"] = f"Column {column_name} not found in data"
+            return
+
+        failing = 0
+        for val in self.data[column_name]:
+            if not isinstance(val, list) or len(val) == 0:
+                failing += 1
+
+        total = len(self.data)
+        if failing > 0:
+            result["status"] = "FAIL"
+            result["records_failing"] = failing
+            result["message"] = f"{failing} of {total} records have empty or non-array {column_name}"
+            result["actual_value"] = f"empty_count={failing}"
+        else:
+            result["actual_value"] = "all arrays non-empty"
+
+        result["expected"] = "array length >= 1"
+
+    def _check_unique_within_group(self, column_name: str, params: dict, result: dict):
+        """Check that column values are unique within each group (no cross-group dedup)."""
+        group_by = params.get("group_by")
+        if not group_by:
+            result["status"] = "ERROR"
+            result["message"] = "unique_within_group check requires params.group_by"
+            return
+
+        if column_name not in self.data.columns or group_by not in self.data.columns:
+            result["status"] = "ERROR"
+            result["message"] = f"Column {column_name} or {group_by} not found in data"
+            return
+
+        # Each value of column_name should appear in at most one group
+        mapping = self.data.dropna(subset=[column_name]).groupby(column_name)[group_by].nunique()
+        violations = mapping[mapping > 1]
+
+        if len(violations) > 0:
+            result["status"] = "FAIL"
+            result["records_failing"] = len(violations)
+            result["sample_failing"] = violations.index.tolist()[:5]
+            result["message"] = (
+                f"{len(violations)} {column_name} values appear in more than one {group_by}"
+            )
+            result["actual_value"] = f"cross_group_values={len(violations)}"
+        else:
+            result["actual_value"] = "all values unique within group"
+
+        result["expected"] = f"each {column_name} maps to exactly one {group_by}"
 
     def generate_report(self) -> dict:
         """Generate the final validation report."""

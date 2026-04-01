@@ -133,14 +133,26 @@ class ContractGenerator:
         if not self.lineage_path or not os.path.exists(self.lineage_path):
             return
         try:
+            nodes: list[dict] = []
             with open(self.lineage_path, "r") as f:
-                lineage_data = json.loads(f.readline())
+                for raw_line in f:
+                    raw_line = raw_line.strip()
+                    if not raw_line:
+                        continue
+                    try:
+                        record = json.loads(raw_line)
+                        nodes.extend(record.get("nodes", []))
+                    except json.JSONDecodeError:
+                        continue
+            if nodes:
                 self.lineage_context = [
                     {"id": node.get("node_id"), "type": node.get("type")}
-                    for node in lineage_data.get("nodes", [])[:3]
+                    for node in nodes[:3]
                 ]
-        except Exception:
-            self.lineage_context = [{"id": "unknown_downstream", "type": "PIPELINE"}]
+            else:
+                print(f"Warning: no lineage nodes found in {self.lineage_path}")
+        except Exception as exc:
+            print(f"Warning: could not load lineage from {self.lineage_path}: {exc}")
 
     def _get_description(self, col: str) -> str:
         descriptions = {
@@ -168,7 +180,12 @@ class ContractGenerator:
             "extracted_at": "ISO 8601 timestamp of extraction completion.",
             "metadata": "Routing and tracing metadata object.",
         }
-        return descriptions.get(col, f"Field: {col}.")
+        # Fall back to a human-readable label derived from the column name rather
+        # than the opaque "Field: {col}." placeholder.
+        if col in descriptions:
+            return descriptions[col]
+        label = col.replace("_", " ").replace("-", " ").title()
+        return f"{label} field."
 
     def _infer_checks(self, col: str, mapped_name: str, dtype: str, series: pd.Series) -> list[dict]:
         """Infer contract checks from column name, type, and value distribution."""
@@ -406,6 +423,28 @@ class ContractGenerator:
         # Add nested array checks for known schemas
         checks.extend(self._infer_nested_checks())
 
+        # Array-not-empty constraints for known array columns
+        ARRAY_COLUMNS: dict[str, list[str]] = {
+            "week3-document-refinery-extractions": ["extracted_facts", "entities"],
+        }
+        for array_col in ARRAY_COLUMNS.get(self.contract_id, []):
+            checks.append({
+                "check_id": f"array_not_empty_{array_col}",
+                "column_name": array_col,
+                "check_type": "array_not_empty",
+                "severity": "CRITICAL",
+            })
+
+        # Cross-field dedup: source_hash must map to exactly one doc_id
+        if self.contract_id == "week3-document-refinery-extractions":
+            checks.append({
+                "check_id": "source_hash_unique_per_doc_id",
+                "column_name": "source_hash",
+                "check_type": "unique_within_group",
+                "params": {"group_by": "doc_id"},
+                "severity": "CRITICAL",
+            })
+
         # Add temporal constraint for event records
         if self.contract_id == "week5-event-records":
             checks.append({
@@ -474,13 +513,18 @@ class ContractGenerator:
         for col in columns:
             col_tests[col["name"]] = ["not_null"]
 
+        # Collect nested checks grouped by array key for unnested models
+        nested_model_checks: dict[str, list[dict]] = {}  # array_key -> list of check dicts
+
         for check in checks:
             col = check.get("column_name", "")
             ctype = check.get("check_type", "")
             params = check.get("params", {})
 
-            # Skip nested paths for top-level dbt model (handled in unnested models)
             if "[*]" in col:
+                # e.g. "extracted_facts[*].confidence" -> array_key = "extracted_facts"
+                array_key = col.split("[*]")[0]
+                nested_model_checks.setdefault(array_key, []).append(check)
                 continue
 
             if ctype == "unique" and col in col_tests:
@@ -528,14 +572,66 @@ class ContractGenerator:
                 "tests": col_tests.get(col["name"], ["not_null"])
             })
 
-        dbt_schema = {
-            "version": 2,
-            "models": [{
-                "name": self.contract_id,
-                "description": f"dbt model for {self.contract_id}. Mirrors contract checks.",
-                "columns": dbt_columns
-            }]
-        }
+        models: list[dict] = [{
+            "name": self.contract_id,
+            "description": f"dbt model for {self.contract_id}. Mirrors contract checks.",
+            "columns": dbt_columns
+        }]
+
+        # Emit one unnested model per array column that has nested checks
+        for array_key, nested_checks in nested_model_checks.items():
+            unnested_col_tests: dict[str, list] = {}
+            for nc in nested_checks:
+                field_path = nc.get("column_name", "")
+                # "extracted_facts[*].confidence" -> field name = "confidence"
+                field = field_path.split(".")[-1] if "." in field_path else field_path
+                unnested_col_tests.setdefault(field, ["not_null"])
+                nc_type = nc.get("check_type", "")
+                nc_params = nc.get("params", {})
+                if nc_type == "unique":
+                    unnested_col_tests[field].append("unique")
+                elif nc_type == "enum":
+                    unnested_col_tests[field].append({
+                        "accepted_values": {"values": nc_params.get("values", [])}
+                    })
+                elif nc_type == "regex":
+                    unnested_col_tests[field].append({
+                        "dbt_utils.expression_is_true": {
+                            "expression": _QuotedStr(
+                                f"{field} regexp '{nc_params.get('pattern', '')}'"
+                            )
+                        }
+                    })
+                elif nc_type == "range":
+                    min_v = nc_params.get("min")
+                    max_v = nc_params.get("max")
+                    if min_v is not None:
+                        unnested_col_tests[field].append({
+                            "dbt_utils.expression_is_true": {
+                                "expression": f"{field} >= {min_v}"
+                            }
+                        })
+                    if max_v is not None:
+                        unnested_col_tests[field].append({
+                            "dbt_utils.expression_is_true": {
+                                "expression": f"{field} <= {max_v}"
+                            }
+                        })
+
+            unnested_columns = [
+                {"name": field, "tests": tests}
+                for field, tests in unnested_col_tests.items()
+            ]
+            models.append({
+                "name": f"{self.contract_id}__{array_key}",
+                "description": (
+                    f"Unnested {array_key} rows from {self.contract_id}. "
+                    "Apply contract checks to individual array items."
+                ),
+                "columns": unnested_columns,
+            })
+
+        dbt_schema = {"version": 2, "models": models}
 
         with open(dbt_path, "w") as f:
             _yaml_dump(dbt_schema, f)

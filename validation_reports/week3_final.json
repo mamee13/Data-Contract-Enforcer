@@ -1,11 +1,11 @@
 {
-  "report_id": "1e94ee45-1891-4087-9be7-3dc42b62502d",
+  "report_id": "eba27131-5805-4a2b-bc4b-b353e1e34bd4",
   "contract_id": "week3-document-refinery-extractions",
   "snapshot_id": "6e4bf6a0fe1b11f4",
-  "run_timestamp": "2026-04-01T19:14:56.858993",
-  "total_checks": 24,
-  "passed": 24,
-  "failed": 0,
+  "run_timestamp": "2026-04-01T19:52:19.002439",
+  "total_checks": 27,
+  "passed": 26,
+  "failed": 1,
   "warned": 0,
   "errored": 0,
   "results": [
@@ -296,6 +296,48 @@
       "records_failing": 0,
       "sample_failing": [],
       "message": ""
+    },
+    {
+      "check_id": "array_not_empty_extracted_facts",
+      "column_name": "extracted_facts",
+      "check_type": "array_not_empty",
+      "status": "PASS",
+      "actual_value": "all arrays non-empty",
+      "expected": "array length >= 1",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "array_not_empty_entities",
+      "column_name": "entities",
+      "check_type": "array_not_empty",
+      "status": "PASS",
+      "actual_value": "all arrays non-empty",
+      "expected": "array length >= 1",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "source_hash_unique_per_doc_id",
+      "column_name": "source_hash",
+      "check_type": "unique_within_group",
+      "status": "FAIL",
+      "actual_value": "cross_group_values=11",
+      "expected": "each source_hash maps to exactly one doc_id",
+      "severity": "CRITICAL",
+      "records_failing": 11,
+      "sample_failing": [
+        "0d41c31a787ef0cd6f4e81aef0876b4e56e8eae764bc5b8e443624f5ca18da22",
+        "162f653e2d17a9d223364bb901ad50cc3431a248e25024228a57206b954d7225",
+        "16a3d6799040d848612c60198486907ee855d60fd7db278fddb4e9408ae7b17d",
+        "1a6b4a11bdaf688fdabb7f0caf6f31a6b4734fbd795d9a3014ce5fa775e6247c",
+        "3c56946f784a96a7ee4dd3c2a60725754c833454a3f3d8337c578d4336cb10b5"
+      ],
+      "message": "11 source_hash values appear in more than one doc_id"
     }
   ]
 }

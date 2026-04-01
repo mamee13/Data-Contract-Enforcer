@@ -52,3 +52,49 @@ models:
     - not_null
     - dbt_utils.expression_is_true:
         expression: 'extracted_at regexp ''^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'''
+- name: week3-document-refinery-extractions__extracted_facts
+  description: Unnested extracted_facts rows from week3-document-refinery-extractions.
+    Apply contract checks to individual array items.
+  columns:
+  - name: confidence
+    tests:
+    - not_null
+    - dbt_utils.expression_is_true:
+        expression: confidence >= 0.0
+    - dbt_utils.expression_is_true:
+        expression: confidence <= 1.0
+  - name: fact_id
+    tests:
+    - not_null
+    - unique
+    - dbt_utils.expression_is_true:
+        expression: 'fact_id regexp ''^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'''
+  - name: page_ref
+    tests:
+    - not_null
+    - dbt_utils.expression_is_true:
+        expression: page_ref >= 1
+    - dbt_utils.expression_is_true:
+        expression: page_ref <= 104.0
+- name: week3-document-refinery-extractions__entities
+  description: Unnested entities rows from week3-document-refinery-extractions. Apply
+    contract checks to individual array items.
+  columns:
+  - name: type
+    tests:
+    - not_null
+    - accepted_values:
+        values:
+        - AMOUNT
+        - DATE
+        - LOCATION
+        - ORG
+        - PERSON
+  - name: entity_id
+    tests:
+    - not_null
+    - dbt_utils.expression_is_true:
+        expression: 'entity_id regexp ''^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'''
+  - name: name
+    tests:
+    - not_null
