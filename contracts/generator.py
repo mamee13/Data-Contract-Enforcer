@@ -6,6 +6,23 @@ import pandas as pd
 from datetime import datetime
 from typing import Any, Optional
 
+
+# Custom YAML dumper that quotes strings containing regex special chars
+class _QuotedStr(str):
+    pass
+
+
+def _quoted_str_representer(dumper, data):
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="'")
+
+
+yaml.add_representer(_QuotedStr, _quoted_str_representer)
+
+
+def _yaml_dump(data, stream=None):
+    """Dump YAML using our custom representer."""
+    return yaml.dump(data, stream=stream, sort_keys=False, allow_unicode=True)
+
 # Standard Bitol Schema key overrides for local data variations
 KEY_OVERRIDES = {
     "week3-document-refinery-extractions": {
@@ -20,6 +37,20 @@ KEY_OVERRIDES = {
 
 # Columns that are known primary/unique keys by name pattern
 UNIQUE_PATTERNS = ("_id", "_hash", "_key")
+
+# Known format patterns for specific field names
+REGEX_PATTERNS: dict[str, str] = {
+    # doc_id is a document slug (filename-based), not a UUID — may contain spaces
+    "doc_id": r"^[A-Za-z0-9_\-\. ]+$",
+    "event_id": r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+    "source_hash": r"^[0-9a-f]{64}$",
+    "extraction_model": r"^(claude|gpt)-",
+    "schema_version": r"^\d+\.\d+(\.\d+)?$",
+}
+
+# ISO 8601 timestamp columns — enforce format
+ISO8601_COLUMNS = {"occurred_at", "recorded_at", "extracted_at", "created_at", "updated_at"}
+ISO8601_PATTERN = r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
 
 # Max cardinality to treat a string column as an enum
 ENUM_CARDINALITY_THRESHOLD = 40
@@ -45,12 +76,35 @@ NESTED_PROFILES: dict[str, list[dict[str, Any]]] = {
             "field": "fact_id",
             "dtype": "string",
             "unique": True,
+            "regex": r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        },
+        {
+            "path": "extracted_facts[*].page_ref",
+            "array_key": "extracted_facts",
+            "field": "page_ref",
+            "dtype": "int",
+            # Semantic lower bound: pages start at 1
+            "range_override": {"min": 1, "max": None},
         },
         {
             "path": "entities[*].type",
             "array_key": "entities",
             "field": "type",
             "dtype": "string",
+        },
+        {
+            "path": "entities[*].entity_id",
+            "array_key": "entities",
+            "field": "entity_id",
+            "dtype": "string",
+            "regex": r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        },
+        {
+            "path": "entities[*].name",
+            "array_key": "entities",
+            "field": "name",
+            "dtype": "string",
+            "not_null": True,
         },
     ]
 }
@@ -103,7 +157,7 @@ class ContractGenerator:
             "aggregate_type": "PascalCase type of the domain aggregate.",
             "sequence_number": "Monotonically increasing integer per aggregate_id. No gaps or duplicates.",
             "schema_version": "Semver schema version of the event record format.",
-            "doc_id": "Primary key. UUIDv4. Stable across re-extractions of the same source.",
+            "doc_id": "Primary key. Stable document slug or identifier across re-extractions of the same source.",
             "source_path": "Absolute path or HTTPS URL of the source document.",
             "source_hash": "SHA-256 hex digest of the source file.",
             "extracted_facts": "Array of fact objects extracted from the document.",
@@ -127,6 +181,26 @@ class ContractGenerator:
             "check_type": "not_null",
             "severity": "CRITICAL"
         })
+
+        # Regex format check for known identifier/format fields
+        if mapped_name in REGEX_PATTERNS:
+            checks.append({
+                "check_id": f"format_{mapped_name}",
+                "column_name": mapped_name,
+                "check_type": "regex",
+                "params": {"pattern": _QuotedStr(REGEX_PATTERNS[mapped_name])},
+                "severity": "CRITICAL"
+            })
+
+        # ISO 8601 format check for known timestamp columns
+        if mapped_name in ISO8601_COLUMNS:
+            checks.append({
+                "check_id": f"format_iso8601_{mapped_name}",
+                "column_name": mapped_name,
+                "check_type": "regex",
+                "params": {"pattern": _QuotedStr(ISO8601_PATTERN)},
+                "severity": "CRITICAL"
+            })
 
         # Unique inference: ID columns and hash columns
         if any(mapped_name.endswith(p) for p in UNIQUE_PATTERNS):
@@ -155,6 +229,9 @@ class ContractGenerator:
             if any(mapped_name.endswith(p) or mapped_name == p.lstrip("_")
                    for p in ENUM_BLOCKLIST_PATTERNS):
                 return checks
+            # Skip fields that already have a regex format check — enum would be too brittle
+            if mapped_name in REGEX_PATTERNS and mapped_name not in ("schema_version",):
+                return checks
             try:
                 cardinality = non_null.nunique()
             except TypeError:
@@ -177,6 +254,11 @@ class ContractGenerator:
                 std_val = float(non_null.std()) if len(non_null) > 1 else 0.0
                 min_val = float(non_null.min())
                 max_val = float(non_null.max())
+
+                # For fields that semantically must be positive, enforce > 0 as lower bound
+                POSITIVE_FIELDS = ("processing_time_ms", "token_count")
+                if any(mapped_name == f or mapped_name.endswith(f) for f in POSITIVE_FIELDS):
+                    min_val = 1.0
 
                 checks.append({
                     "check_id": f"range_{mapped_name}",
@@ -205,6 +287,7 @@ class ContractGenerator:
             array_key = spec["array_key"]
             field = spec["field"]
             path = spec["path"]
+            path_key = path.replace("[*].", "_").replace(".", "_")
 
             values = []
             for record in self.records:
@@ -216,47 +299,70 @@ class ContractGenerator:
             if not values:
                 continue
 
+            # Not-null check for nested fields
+            if spec.get("not_null"):
+                checks.append({
+                    "check_id": f"not_null_{path_key}",
+                    "column_name": path,
+                    "check_type": "not_null",
+                    "severity": "CRITICAL"
+                })
+
             # Unique check for nested IDs
             if spec.get("unique"):
                 checks.append({
-                    "check_id": f"unique_{path.replace('[*].', '_').replace('.', '_')}",
+                    "check_id": f"unique_{path_key}",
                     "column_name": path,
                     "check_type": "unique",
                     "severity": "CRITICAL"
                 })
 
+            # Regex check for nested fields with known format
+            if spec.get("regex"):
+                checks.append({
+                    "check_id": f"format_{path_key}",
+                    "column_name": path,
+                    "check_type": "regex",
+                    "params": {"pattern": _QuotedStr(spec["regex"])},
+                    "severity": "CRITICAL"
+                })
+
             # Range check for numeric nested fields
-            if spec["dtype"] == "float":
+            if spec["dtype"] in ("float", "int"):
                 numeric = pd.Series(pd.to_numeric(values, errors="coerce")).dropna()
                 if not numeric.empty:
                     mean_val = float(numeric.mean())
                     std_val = float(numeric.std()) if len(numeric) > 1 else 0.0
-                    # Use semantic override if provided, otherwise use observed min/max
                     range_override = spec.get("range_override")
                     range_min = range_override["min"] if range_override else float(numeric.min())
-                    range_max = range_override["max"] if range_override else float(numeric.max())
+                    # None max means use observed max
+                    range_max = (
+                        range_override["max"] if range_override and range_override["max"] is not None
+                        else float(numeric.max())
+                    )
                     checks.append({
-                        "check_id": f"range_{path.replace('[*].', '_').replace('.', '_')}",
+                        "check_id": f"range_{path_key}",
                         "column_name": path,
                         "check_type": "range",
                         "params": {"min": range_min, "max": range_max},
                         "severity": "CRITICAL"
                     })
-                    checks.append({
-                        "check_id": f"mean_drift_{path.replace('[*].', '_').replace('.', '_')}",
-                        "column_name": path,
-                        "check_type": "drift",
-                        "params": {"baseline_mean": mean_val, "std_dev": std_val},
-                        "severity": "CRITICAL"
-                    })
+                    if spec["dtype"] == "float":
+                        checks.append({
+                            "check_id": f"mean_drift_{path_key}",
+                            "column_name": path,
+                            "check_type": "drift",
+                            "params": {"baseline_mean": mean_val, "std_dev": std_val},
+                            "severity": "CRITICAL"
+                        })
 
             # Enum check for low-cardinality string nested fields
-            if spec["dtype"] == "string":
+            if spec["dtype"] == "string" and not spec.get("regex"):
                 series = pd.Series(values).dropna()
                 cardinality = series.nunique()
                 if 0 < cardinality <= ENUM_CARDINALITY_THRESHOLD:
                     checks.append({
-                        "check_id": f"enum_{path.replace('[*].', '_').replace('.', '_')}",
+                        "check_id": f"enum_{path_key}",
                         "column_name": path,
                         "check_type": "enum",
                         "params": {"values": sorted(series.unique().tolist())},
@@ -316,6 +422,13 @@ class ContractGenerator:
                 "params": {"group_by": "aggregate_id"},
                 "severity": "CRITICAL"
             })
+            checks.append({
+                "check_id": "sequence_number_starts_at_one",
+                "column_name": "sequence_number",
+                "check_type": "range",
+                "params": {"min": 1, "max": None},
+                "severity": "CRITICAL"
+            })
 
         contract = {
             "bitol_version": "1.1.0",
@@ -332,7 +445,7 @@ class ContractGenerator:
 
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
         with open(self.output_path, "w") as f:
-            yaml.dump(contract, f, sort_keys=False)
+            _yaml_dump(contract, f)
 
         # Save timestamped snapshot
         snapshot_dir = f"schema_snapshots/{self.contract_id}"
@@ -340,7 +453,7 @@ class ContractGenerator:
         ts = datetime.now().strftime("%Y%m%d%H%M%S%f")
         snapshot_path = f"{snapshot_dir}/snapshot_{ts}.yaml"
         with open(snapshot_path, "w") as f:
-            yaml.dump(contract, f, sort_keys=False)
+            _yaml_dump(contract, f)
 
         # Extra artifacts
         if self.contract_id in ["week3-document-refinery-extractions", "week5-event-records"]:
@@ -376,6 +489,36 @@ class ContractGenerator:
                 col_tests[col].append({
                     "accepted_values": {"values": params.get("values", [])}
                 })
+            elif ctype == "regex" and col in col_tests:
+                col_tests[col].append({
+                    "dbt_utils.expression_is_true": {
+                        "expression": _QuotedStr(f"{col} regexp '{params.get('pattern', '')}'")
+                    }
+                })
+            elif ctype == "range" and col in col_tests:
+                min_v = params.get("min")
+                if min_v is not None:
+                    col_tests[col].append({
+                        "dbt_utils.expression_is_true": {
+                            "expression": f"{col} >= {min_v}"
+                        }
+                    })
+            elif ctype == "temporal_gte" and col in col_tests:
+                ref = params.get("reference_column", "")
+                col_tests[col].append({
+                    "dbt_utils.expression_is_true": {
+                        "expression": f"{col} >= {ref}"
+                    }
+                })
+            elif ctype == "monotonic_per_group" and col in col_tests:
+                group = params.get("group_by", "")
+                col_tests[col].append({
+                    "dbt_utils.expression_is_true": {
+                        "expression": (
+                            f"{col} = row_number() over (partition by {group} order by {col})"
+                        )
+                    }
+                })
 
         dbt_columns = []
         for col in columns:
@@ -395,7 +538,7 @@ class ContractGenerator:
         }
 
         with open(dbt_path, "w") as f:
-            yaml.dump(dbt_schema, f, sort_keys=False)
+            _yaml_dump(dbt_schema, f)
 
         print(f"dbt schema written to {dbt_path}")
 

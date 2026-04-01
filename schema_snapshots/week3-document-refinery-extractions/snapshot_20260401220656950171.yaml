@@ -122,12 +122,6 @@ checks:
   column_name: extracted_at
   check_type: not_null
   severity: CRITICAL
-- check_id: format_iso8601_extracted_at
-  column_name: extracted_at
-  check_type: regex
-  params:
-    pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
-  severity: CRITICAL
 - check_id: range_extracted_facts_confidence
   column_name: extracted_facts[*].confidence
   check_type: range
@@ -146,19 +140,6 @@ checks:
   column_name: extracted_facts[*].fact_id
   check_type: unique
   severity: CRITICAL
-- check_id: format_extracted_facts_fact_id
-  column_name: extracted_facts[*].fact_id
-  check_type: regex
-  params:
-    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-  severity: CRITICAL
-- check_id: range_extracted_facts_page_ref
-  column_name: extracted_facts[*].page_ref
-  check_type: range
-  params:
-    min: 1
-    max: 104.0
-  severity: CRITICAL
 - check_id: enum_entities_type
   column_name: entities[*].type
   check_type: enum
@@ -169,14 +150,4 @@ checks:
     - LOCATION
     - ORG
     - PERSON
-  severity: CRITICAL
-- check_id: format_entities_entity_id
-  column_name: entities[*].entity_id
-  check_type: regex
-  params:
-    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-  severity: CRITICAL
-- check_id: not_null_entities_name
-  column_name: entities[*].name
-  check_type: not_null
   severity: CRITICAL

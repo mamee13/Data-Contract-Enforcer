@@ -1,10 +1,10 @@
 {
-  "report_id": "a3ef19d3-1a0b-4d19-b7a9-493913e9ff2a",
+  "report_id": "d2ed1dbe-135a-43e9-8291-d38ed8b3d932",
   "contract_id": "week5-event-records",
   "snapshot_id": "6a86519eb5aa9042",
-  "run_timestamp": "2026-04-01T18:22:31.323910",
-  "total_checks": 18,
-  "passed": 17,
+  "run_timestamp": "2026-04-01T19:15:12.573500",
+  "total_checks": 23,
+  "passed": 22,
   "failed": 1,
   "warned": 0,
   "errored": 0,
@@ -16,6 +16,18 @@
       "status": "PASS",
       "actual_value": "null_count=0",
       "expected": "no null values",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "format_event_id",
+      "column_name": "event_id",
+      "check_type": "regex",
+      "status": "PASS",
+      "actual_value": "all values match pattern",
+      "expected": "matches ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
       "severity": "CRITICAL",
       "records_failing": 0,
       "sample_failing": [],
@@ -166,6 +178,18 @@
       "message": ""
     },
     {
+      "check_id": "format_schema_version",
+      "column_name": "schema_version",
+      "check_type": "regex",
+      "status": "PASS",
+      "actual_value": "all values match pattern",
+      "expected": "matches ^\\d+\\.\\d+(\\.\\d+)?$",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
       "check_id": "enum_schema_version",
       "column_name": "schema_version",
       "check_type": "enum",
@@ -190,12 +214,36 @@
       "message": ""
     },
     {
+      "check_id": "format_iso8601_occurred_at",
+      "column_name": "occurred_at",
+      "check_type": "regex",
+      "status": "PASS",
+      "actual_value": "all values match pattern",
+      "expected": "matches ^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
       "check_id": "not_null_recorded_at",
       "column_name": "recorded_at",
       "check_type": "not_null",
       "status": "PASS",
       "actual_value": "null_count=0",
       "expected": "no null values",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "format_iso8601_recorded_at",
+      "column_name": "recorded_at",
+      "check_type": "regex",
+      "status": "PASS",
+      "actual_value": "all values match pattern",
+      "expected": "matches ^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}",
       "severity": "CRITICAL",
       "records_failing": 0,
       "sample_failing": [],
@@ -230,6 +278,18 @@
         "APEX-0005"
       ],
       "message": "29 aggregates have non-monotonic sequence_number (duplicates or gaps)"
+    },
+    {
+      "check_id": "sequence_number_starts_at_one",
+      "column_name": "sequence_number",
+      "check_type": "range",
+      "status": "PASS",
+      "actual_value": "min=1.0, max=14.0",
+      "expected": "min>=1",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
     }
   ]
 }

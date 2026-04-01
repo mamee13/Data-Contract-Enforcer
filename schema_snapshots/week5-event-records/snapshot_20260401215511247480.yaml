@@ -63,7 +63,7 @@ checks:
   column_name: event_id
   check_type: regex
   params:
-    pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
   severity: CRITICAL
 - check_id: unique_event_id
   column_name: event_id
@@ -164,7 +164,7 @@ checks:
   column_name: schema_version
   check_type: regex
   params:
-    pattern: '^\d+\.\d+(\.\d+)?$'
+    pattern: ^\d+\.\d+(\.\d+)?$
   severity: CRITICAL
 - check_id: enum_schema_version
   column_name: schema_version
@@ -178,21 +178,9 @@ checks:
   column_name: occurred_at
   check_type: not_null
   severity: CRITICAL
-- check_id: format_iso8601_occurred_at
-  column_name: occurred_at
-  check_type: regex
-  params:
-    pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
-  severity: CRITICAL
 - check_id: not_null_recorded_at
   column_name: recorded_at
   check_type: not_null
-  severity: CRITICAL
-- check_id: format_iso8601_recorded_at
-  column_name: recorded_at
-  check_type: regex
-  params:
-    pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
   severity: CRITICAL
 - check_id: temporal_recorded_at_gte_occurred_at
   column_name: recorded_at
@@ -205,11 +193,4 @@ checks:
   check_type: monotonic_per_group
   params:
     group_by: aggregate_id
-  severity: CRITICAL
-- check_id: sequence_number_starts_at_one
-  column_name: sequence_number
-  check_type: range
-  params:
-    min: 1
-    max: null
   severity: CRITICAL

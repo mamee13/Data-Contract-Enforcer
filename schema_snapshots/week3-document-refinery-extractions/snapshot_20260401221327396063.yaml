@@ -170,6 +170,10 @@ checks:
     - ORG
     - PERSON
   severity: CRITICAL
+- check_id: unique_entities_entity_id
+  column_name: entities[*].entity_id
+  check_type: unique
+  severity: CRITICAL
 - check_id: format_entities_entity_id
   column_name: entities[*].entity_id
   check_type: regex

@@ -92,10 +92,19 @@ class ValidationRunner:
                     if "fact_id" in fact:
                         values.append(fact["fact_id"])
 
+            elif path_pattern == "extracted_facts[*].page_ref":
+                for fact in record.get("extracted_facts", []):
+                    if "page_ref" in fact:
+                        values.append(fact["page_ref"])
+
             elif path_pattern == "entities[*].entity_id":
                 for entity in record.get("entities", []):
                     if "entity_id" in entity:
                         values.append(entity["entity_id"])
+
+            elif path_pattern == "entities[*].name":
+                for entity in record.get("entities", []):
+                    values.append(entity.get("name"))  # include None for not_null check
 
             elif path_pattern == "entities[*].type":
                 for entity in record.get("entities", []):
@@ -151,6 +160,8 @@ class ValidationRunner:
                     self._check_enum(column_name, params, result)
                 elif check_type == "unique":
                     self._check_unique(column_name, result)
+                elif check_type == "regex":
+                    self._check_regex(column_name, params, result)
                 elif check_type == "temporal_gte":
                     self._check_temporal_gte(column_name, params, result)
                 elif check_type == "monotonic_per_group":
@@ -206,7 +217,19 @@ class ValidationRunner:
         actual_min = float(col_data.min())
         actual_max = float(col_data.max())
 
-        failures = col_data[(col_data < min_val) | (col_data > max_val)]
+        if min_val is not None and max_val is not None:
+            failures = col_data[(col_data < min_val) | (col_data > max_val)]
+            expected_str = f"min>={min_val}, max<={max_val}"
+        elif min_val is not None:
+            failures = col_data[col_data < min_val]
+            expected_str = f"min>={min_val}"
+        elif max_val is not None:
+            failures = col_data[col_data > max_val]
+            expected_str = f"max<={max_val}"
+        else:
+            failures = col_data.iloc[0:0]  # empty
+            expected_str = "no bounds"
+
         failures_list = failures.tolist() if hasattr(failures, "tolist") else list(failures)
 
         if len(failures_list) > 0:
@@ -218,7 +241,7 @@ class ValidationRunner:
         else:
             result["actual_value"] = f"min={actual_min}, max={actual_max}"
 
-        result["expected"] = f"min>={min_val}, max<={max_val}"
+        result["expected"] = expected_str
 
     def _check_drift(self, column_name: str, params: dict, result: dict):
         """Check for statistical drift from baseline."""
@@ -318,6 +341,39 @@ class ValidationRunner:
             result["actual_value"] = f"unique={unique_count}"
 
         result["expected"] = "all unique"
+
+    def _check_regex(self, column_name: str, params: dict, result: dict):
+        """Check that string values match a regex pattern."""
+        import re
+        pattern = params.get("pattern", "")
+        if not pattern:
+            result["status"] = "ERROR"
+            result["message"] = "regex check requires params.pattern"
+            return
+
+        if column_name in self.data.columns:
+            col_data = self.data[column_name].dropna().astype(str)
+        else:
+            col_data = pd.Series(self._extract_nested_values(column_name)).dropna().astype(str)
+
+        if len(col_data) == 0:
+            result["status"] = "ERROR"
+            result["message"] = f"No data for {column_name}"
+            return
+
+        compiled = re.compile(pattern)
+        invalid = col_data[~col_data.apply(lambda v: bool(compiled.search(v)))]
+
+        if len(invalid) > 0:
+            result["status"] = "FAIL"
+            result["records_failing"] = len(invalid)
+            result["sample_failing"] = invalid.head(5).tolist()
+            result["message"] = f"{len(invalid)} values do not match pattern {pattern}"
+            result["actual_value"] = f"invalid_count={len(invalid)}"
+        else:
+            result["actual_value"] = "all values match pattern"
+
+        result["expected"] = f"matches {pattern}"
 
     def _check_temporal_gte(self, column_name: str, params: dict, result: dict):
         """Check that column value >= reference_column value for every record."""

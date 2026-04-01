@@ -4,7 +4,7 @@
   "properties": {
     "doc_id": {
       "type": "string",
-      "description": "Primary key. UUIDv4. Stable across re-extractions of the same source."
+      "description": "Primary key. Stable document slug or identifier across re-extractions of the same source."
     },
     "source_path": {
       "type": "string",

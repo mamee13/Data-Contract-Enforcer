@@ -5,9 +5,12 @@ models:
     checks.
   columns:
   - name: doc_id
-    description: Primary key. UUIDv4. Stable across re-extractions of the same source.
+    description: Primary key. Stable document slug or identifier across re-extractions
+      of the same source.
     tests:
     - not_null
+    - dbt_utils.expression_is_true:
+        expression: 'doc_id regexp ''^[A-Za-z0-9_\-\. ]+$'''
     - unique
   - name: source_path
     description: Absolute path or HTTPS URL of the source document.
@@ -17,6 +20,8 @@ models:
     description: SHA-256 hex digest of the source file.
     tests:
     - not_null
+    - dbt_utils.expression_is_true:
+        expression: 'source_hash regexp ''^[0-9a-f]{64}$'''
   - name: extracted_facts
     description: Array of fact objects extracted from the document.
     tests:
@@ -29,13 +34,14 @@ models:
     description: Model identifier used for extraction. Must match ^(claude|gpt)-.
     tests:
     - not_null
-    - accepted_values:
-        values:
-        - claude-3-5-sonnet-20241022
+    - dbt_utils.expression_is_true:
+        expression: 'extraction_model regexp ''^(claude|gpt)-'''
   - name: processing_time_ms
     description: Wall-clock extraction time in milliseconds. Must be positive.
     tests:
     - not_null
+    - dbt_utils.expression_is_true:
+        expression: processing_time_ms >= 1.0
   - name: token_count
     description: Token usage object with integer fields input and output.
     tests:
@@ -44,3 +50,5 @@ models:
     description: ISO 8601 timestamp of extraction completion.
     tests:
     - not_null
+    - dbt_utils.expression_is_true:
+        expression: 'extracted_at regexp ''^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'''
