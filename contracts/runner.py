@@ -151,6 +151,10 @@ class ValidationRunner:
                     self._check_enum(column_name, params, result)
                 elif check_type == "unique":
                     self._check_unique(column_name, result)
+                elif check_type == "temporal_gte":
+                    self._check_temporal_gte(column_name, params, result)
+                elif check_type == "monotonic_per_group":
+                    self._check_monotonic_per_group(column_name, params, result)
                 else:
                     result["status"] = "ERROR"
                     result["message"] = f"Unknown check type: {check_type}"
@@ -314,6 +318,78 @@ class ValidationRunner:
             result["actual_value"] = f"unique={unique_count}"
 
         result["expected"] = "all unique"
+
+    def _check_temporal_gte(self, column_name: str, params: dict, result: dict):
+        """Check that column value >= reference_column value for every record."""
+        reference_column = params.get("reference_column")
+        if not reference_column:
+            result["status"] = "ERROR"
+            result["message"] = "temporal_gte check requires params.reference_column"
+            return
+
+        if column_name not in self.data.columns or reference_column not in self.data.columns:
+            result["status"] = "ERROR"
+            result["message"] = f"Column {column_name} or {reference_column} not found in data"
+            return
+
+        # Compare as strings — ISO 8601 timestamps sort lexicographically
+        violations = self.data[self.data[column_name] < self.data[reference_column]]
+        failing_count = len(violations)
+
+        if failing_count > 0:
+            result["status"] = "FAIL"
+            result["records_failing"] = failing_count
+            result["sample_failing"] = violations[[column_name, reference_column]].head(5).to_dict("records")
+            result["message"] = f"{failing_count} records have {column_name} < {reference_column}"
+            result["actual_value"] = f"violations={failing_count}"
+        else:
+            result["actual_value"] = "all records pass"
+
+        result["expected"] = f"{column_name} >= {reference_column}"
+
+    def _check_monotonic_per_group(self, column_name: str, params: dict, result: dict):
+        """Check that column is monotonically increasing (no gaps, no duplicates) per group."""
+        group_by = params.get("group_by")
+        if not group_by:
+            result["status"] = "ERROR"
+            result["message"] = "monotonic_per_group check requires params.group_by"
+            return
+
+        if column_name not in self.data.columns or group_by not in self.data.columns:
+            result["status"] = "ERROR"
+            result["message"] = f"Column {column_name} or {group_by} not found in data"
+            return
+
+        failing_groups = []
+        total_violations = 0
+
+        for group_val, group_df in self.data.groupby(group_by):
+            seqs = group_df[column_name].dropna().sort_values().tolist()
+            # Check for duplicates
+            if len(seqs) != len(set(seqs)):
+                failing_groups.append(str(group_val))
+                total_violations += len(seqs) - len(set(seqs))
+                continue
+            # Check for gaps (sequence should be consecutive integers starting at min)
+            if seqs:
+                expected = list(range(int(min(seqs)), int(min(seqs)) + len(seqs)))
+                if [int(s) for s in seqs] != expected:
+                    failing_groups.append(str(group_val))
+                    total_violations += 1
+
+        if failing_groups:
+            result["status"] = "FAIL"
+            result["records_failing"] = total_violations
+            result["sample_failing"] = failing_groups[:5]
+            result["message"] = (
+                f"{len(failing_groups)} aggregates have non-monotonic {column_name} "
+                f"(duplicates or gaps)"
+            )
+            result["actual_value"] = f"failing_groups={len(failing_groups)}"
+        else:
+            result["actual_value"] = "all groups monotonic"
+
+        result["expected"] = f"{column_name} monotonically increasing per {group_by}"
 
     def generate_report(self) -> dict:
         """Generate the final validation report."""

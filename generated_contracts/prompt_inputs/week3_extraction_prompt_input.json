@@ -4,39 +4,39 @@
   "properties": {
     "doc_id": {
       "type": "string",
-      "description": "Field representing doc_id."
+      "description": "Primary key. UUIDv4. Stable across re-extractions of the same source."
     },
     "source_path": {
       "type": "string",
-      "description": "Field representing source_path."
+      "description": "Absolute path or HTTPS URL of the source document."
     },
     "source_hash": {
       "type": "string",
-      "description": "Field representing source_hash."
+      "description": "SHA-256 hex digest of the source file."
     },
     "extracted_facts": {
       "type": "string",
-      "description": "Field representing extracted_facts."
+      "description": "Array of fact objects extracted from the document."
     },
     "entities": {
       "type": "string",
-      "description": "Field representing entities."
+      "description": "Named entities identified in the document."
     },
     "extraction_model": {
       "type": "string",
-      "description": "Field representing extraction_model."
+      "description": "Model identifier used for extraction. Must match ^(claude|gpt)-."
     },
     "processing_time_ms": {
       "type": "number",
-      "description": "Field representing processing_time_ms."
+      "description": "Wall-clock extraction time in milliseconds. Must be positive."
     },
     "token_count": {
       "type": "string",
-      "description": "Field representing token_count."
+      "description": "Token usage object with integer fields input and output."
     },
     "extracted_at": {
       "type": "string",
-      "description": "Field representing extracted_at."
+      "description": "ISO 8601 timestamp of extraction completion."
     }
   },
   "required": [

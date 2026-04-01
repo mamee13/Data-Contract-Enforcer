@@ -1,8 +1,8 @@
 bitol_version: 1.1.0
-id: week3-document-refinery-extractions
-name: Week3 Document Refinery Extractions
+id: extractions
+name: Extractions
 owner: data-governance-team
-description: Generated contract for week3-document-refinery-extractions
+description: Generated contract for extractions
 lineage:
   downstream:
   - id: file::src/__init__.py
@@ -14,48 +14,44 @@ lineage:
 columns:
 - name: doc_id
   data_type: string
-  description: Primary key. UUIDv4. Stable across re-extractions of the same source.
+  description: Field representing doc_id.
   llm_annotations: []
 - name: source_path
   data_type: string
-  description: Absolute path or HTTPS URL of the source document.
+  description: Field representing source_path.
   llm_annotations: []
 - name: source_hash
   data_type: string
-  description: SHA-256 hex digest of the source file.
+  description: Field representing source_hash.
   llm_annotations: []
 - name: extracted_facts
   data_type: string
-  description: Array of fact objects extracted from the document.
+  description: Field representing extracted_facts.
   llm_annotations: []
 - name: entities
   data_type: string
-  description: Named entities identified in the document.
+  description: Field representing entities.
   llm_annotations: []
 - name: extraction_model
   data_type: string
-  description: Model identifier used for extraction. Must match ^(claude|gpt)-.
+  description: Field representing extraction_model.
   llm_annotations: []
 - name: processing_time_ms
   data_type: number
-  description: Wall-clock extraction time in milliseconds. Must be positive.
+  description: Field representing processing_time_ms.
   llm_annotations: []
 - name: token_count
   data_type: string
-  description: Token usage object with integer fields input and output.
+  description: Field representing token_count.
   llm_annotations: []
 - name: extracted_at
   data_type: string
-  description: ISO 8601 timestamp of extraction completion.
+  description: Field representing extracted_at.
   llm_annotations: []
 checks:
 - check_id: not_null_doc_id
   column_name: doc_id
   check_type: not_null
-  severity: CRITICAL
-- check_id: unique_doc_id
-  column_name: doc_id
-  check_type: unique
   severity: CRITICAL
 - check_id: not_null_source_path
   column_name: source_path
@@ -76,13 +72,6 @@ checks:
 - check_id: not_null_extraction_model
   column_name: extraction_model
   check_type: not_null
-  severity: CRITICAL
-- check_id: enum_extraction_model
-  column_name: extraction_model
-  check_type: enum
-  params:
-    values:
-    - claude-3-5-sonnet-20241022
   severity: CRITICAL
 - check_id: not_null_processing_time_ms
   column_name: processing_time_ms
@@ -109,33 +98,4 @@ checks:
 - check_id: not_null_extracted_at
   column_name: extracted_at
   check_type: not_null
-  severity: CRITICAL
-- check_id: range_extracted_facts_confidence
-  column_name: extracted_facts[*].confidence
-  check_type: range
-  params:
-    min: 0.0
-    max: 1.0
-  severity: CRITICAL
-- check_id: mean_drift_extracted_facts_confidence
-  column_name: extracted_facts[*].confidence
-  check_type: drift
-  params:
-    baseline_mean: 0.9498944869427589
-    std_dev: 0.0064965546943232455
-  severity: CRITICAL
-- check_id: unique_extracted_facts_fact_id
-  column_name: extracted_facts[*].fact_id
-  check_type: unique
-  severity: CRITICAL
-- check_id: enum_entities_type
-  column_name: entities[*].type
-  check_type: enum
-  params:
-    values:
-    - AMOUNT
-    - DATE
-    - LOCATION
-    - ORG
-    - PERSON
   severity: CRITICAL

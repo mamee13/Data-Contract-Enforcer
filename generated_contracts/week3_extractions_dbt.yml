@@ -1,40 +1,46 @@
 version: 2
 models:
 - name: week3-document-refinery-extractions
+  description: dbt model for week3-document-refinery-extractions. Mirrors contract
+    checks.
   columns:
   - name: doc_id
-    description: Field representing doc_id.
+    description: Primary key. UUIDv4. Stable across re-extractions of the same source.
     tests:
     - not_null
+    - unique
   - name: source_path
-    description: Field representing source_path.
+    description: Absolute path or HTTPS URL of the source document.
     tests:
     - not_null
   - name: source_hash
-    description: Field representing source_hash.
+    description: SHA-256 hex digest of the source file.
     tests:
     - not_null
   - name: extracted_facts
-    description: Field representing extracted_facts.
+    description: Array of fact objects extracted from the document.
     tests:
     - not_null
   - name: entities
-    description: Field representing entities.
+    description: Named entities identified in the document.
     tests:
     - not_null
   - name: extraction_model
-    description: Field representing extraction_model.
+    description: Model identifier used for extraction. Must match ^(claude|gpt)-.
     tests:
     - not_null
+    - accepted_values:
+        values:
+        - claude-3-5-sonnet-20241022
   - name: processing_time_ms
-    description: Field representing processing_time_ms.
+    description: Wall-clock extraction time in milliseconds. Must be positive.
     tests:
     - not_null
   - name: token_count
-    description: Field representing token_count.
+    description: Token usage object with integer fields input and output.
     tests:
     - not_null
   - name: extracted_at
-    description: Field representing extracted_at.
+    description: ISO 8601 timestamp of extraction completion.
     tests:
     - not_null

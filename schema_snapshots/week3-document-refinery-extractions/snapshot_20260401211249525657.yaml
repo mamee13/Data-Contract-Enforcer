@@ -61,10 +61,49 @@ checks:
   column_name: source_path
   check_type: not_null
   severity: CRITICAL
+- check_id: enum_source_path
+  column_name: source_path
+  check_type: enum
+  params:
+    values:
+    - The Document Intelligence Refinery/.refinery/extracted/2013-E.C-Procurement-information.json
+    - The Document Intelligence Refinery/.refinery/extracted/20191010_Pharmaceutical-Manufacturing-Opportunites-in-Ethiopia_VF.json
+    - The Document Intelligence Refinery/.refinery/extracted/2021_Audited_Financial_Statement_Report.json
+    - The Document Intelligence Refinery/.refinery/extracted/2022_Audited_Financial_Statement_Report.json
+    - The Document Intelligence Refinery/.refinery/extracted/Annual_Report_JUNE-2023.json
+    - The Document Intelligence Refinery/.refinery/extracted/Consumer Price Index
+      July 2025.json
+    - The Document Intelligence Refinery/.refinery/extracted/Consumer Price Index
+      June 2025.json
+    - The Document Intelligence Refinery/.refinery/extracted/Consumer Price Index
+      March 2025.json
+    - The Document Intelligence Refinery/.refinery/extracted/Security_Vulnerability_Disclosure_Standard_Procedure_1.json
+    - The Document Intelligence Refinery/.refinery/extracted/reading_notes.json
+    - The Document Intelligence Refinery/.refinery/extracted/simple_test.json
+    - The Document Intelligence Refinery/.refinery/extracted/tax_expenditure_ethiopia_2021_22.json
+  severity: HIGH
 - check_id: not_null_source_hash
   column_name: source_hash
   check_type: not_null
   severity: CRITICAL
+- check_id: enum_source_hash
+  column_name: source_hash
+  check_type: enum
+  params:
+    values:
+    - 0d41c31a787ef0cd6f4e81aef0876b4e56e8eae764bc5b8e443624f5ca18da22
+    - 162f653e2d17a9d223364bb901ad50cc3431a248e25024228a57206b954d7225
+    - 16a3d6799040d848612c60198486907ee855d60fd7db278fddb4e9408ae7b17d
+    - 1a6b4a11bdaf688fdabb7f0caf6f31a6b4734fbd795d9a3014ce5fa775e6247c
+    - 3c56946f784a96a7ee4dd3c2a60725754c833454a3f3d8337c578d4336cb10b5
+    - 60c08f123b9f6c7df5b2cd71f969950824b7541fb8bfd52e6e545b2a2c9cfbeb
+    - 64e27feeb2d8ad3ded17ced3fc576a82068cf24f084b72c434092d54ba611512
+    - a1b6d3682bec9a44a49f88241b5494de913a8876dcc329358a7d8292241c822b
+    - ada36f79988e8550703de05c3d224a9bdabfa433338217c8fa3a4e00674f5d04
+    - bcf30be5defa692218abae28e143e5a9d256e84f771b3e58f036f3f691f9805b
+    - c6e1c1922278186bec0a0bea670af4e35aed14daf1f05ed492c5ebefdc474069
+    - cf7bbb810403123085a0e97914fdefc8532e0e6354d7b5bcf73c0d6a1b9c94f2
+  severity: HIGH
 - check_id: not_null_extracted_facts
   column_name: extracted_facts
   check_type: not_null
@@ -110,12 +149,30 @@ checks:
   column_name: extracted_at
   check_type: not_null
   severity: CRITICAL
+- check_id: enum_extracted_at
+  column_name: extracted_at
+  check_type: enum
+  params:
+    values:
+    - '2026-03-06T15:59:33.717497'
+    - '2026-03-06T16:12:55.552307'
+    - '2026-03-06T16:25:20.233342'
+    - '2026-03-06T22:50:21.020157'
+    - '2026-03-06T23:19:23.908843'
+    - '2026-03-07T09:42:05.832581'
+    - '2026-03-07T09:43:34.166046'
+    - '2026-03-07T09:52:26.289151'
+    - '2026-03-07T13:26:04.915505'
+    - '2026-03-07T14:43:48.241937'
+    - '2026-03-07T14:47:35.966572'
+    - '2026-03-07T20:22:36.445392'
+  severity: HIGH
 - check_id: range_extracted_facts_confidence
   column_name: extracted_facts[*].confidence
   check_type: range
   params:
-    min: 0.0
-    max: 1.0
+    min: 0.5499999999999999
+    max: 0.95
   severity: CRITICAL
 - check_id: mean_drift_extracted_facts_confidence
   column_name: extracted_facts[*].confidence

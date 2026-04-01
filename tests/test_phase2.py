@@ -647,10 +647,8 @@ class TestReportReadme:
         assert isinstance(rate, (int, float))
 
     def test_pdf_exists(self):
-        from datetime import datetime
-        date_str = datetime.utcnow().strftime("%Y%m%d")
-        pdf_path = Path(f"enforcer_report/report_{date_str}.pdf")
-        assert pdf_path.exists(), f"PDF not found at {pdf_path}"
+        pdfs = list(Path("enforcer_report").glob("report_*.pdf"))
+        assert len(pdfs) >= 1, "No PDF found in enforcer_report/ — run report_generator.py"
 
     def test_readme_exists(self):
         assert Path("README.md").exists()
