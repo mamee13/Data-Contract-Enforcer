@@ -1,0 +1,1 @@
+{"record": {"some_field": "no doc_id here"}, "error": "Missing required fields: doc_id or source_path"}
