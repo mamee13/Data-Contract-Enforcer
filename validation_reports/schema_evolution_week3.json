@@ -1,0 +1,208 @@
+{
+  "generated_at": "2026-04-02T19:38:31.357414",
+  "contract_id": "week3-document-refinery-extractions",
+  "schema_diff": {
+    "old_snapshot": "snapshot_20260401225053099540",
+    "new_snapshot": "snapshot_20260402223605042980",
+    "changes": [
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "extraction_model"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "doc_id"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "entities"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "source_path"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "token_count"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "source_hash"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "extracted_at"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "extracted_facts"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "processing_time_ms"
+      },
+      {
+        "classification": "BREAKING",
+        "type": "STAT_BASELINE_SCALE_CHANGE",
+        "field": "mean_drift_extracted_facts_confidence",
+        "description": "Statistical baseline mean changed from 0.9499 to 94.9894 (ratio 100.0x) \u2014 indicates a scale change in the underlying data",
+        "action": "Investigate data pipeline for scale/unit change"
+      }
+    ],
+    "breaking_changes": [
+      {
+        "classification": "BREAKING",
+        "type": "STAT_BASELINE_SCALE_CHANGE",
+        "field": "mean_drift_extracted_facts_confidence",
+        "description": "Statistical baseline mean changed from 0.9499 to 94.9894 (ratio 100.0x) \u2014 indicates a scale change in the underlying data",
+        "action": "Investigate data pipeline for scale/unit change"
+      }
+    ],
+    "compatibility_verdict": "BREAKING",
+    "verdict_message": "1 breaking change(s) detected"
+  },
+  "migration_impact": {
+    "exact_diff": {
+      "old_snapshot": "snapshot_20260401225053099540",
+      "new_snapshot": "snapshot_20260402223605042980",
+      "changes": [
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "extraction_model"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "doc_id"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "entities"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "source_path"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "token_count"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "source_hash"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "extracted_at"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "extracted_facts"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "processing_time_ms"
+        },
+        {
+          "classification": "BREAKING",
+          "type": "STAT_BASELINE_SCALE_CHANGE",
+          "field": "mean_drift_extracted_facts_confidence",
+          "description": "Statistical baseline mean changed from 0.9499 to 94.9894 (ratio 100.0x) \u2014 indicates a scale change in the underlying data",
+          "action": "Investigate data pipeline for scale/unit change"
+        }
+      ],
+      "breaking_changes": [
+        {
+          "classification": "BREAKING",
+          "type": "STAT_BASELINE_SCALE_CHANGE",
+          "field": "mean_drift_extracted_facts_confidence",
+          "description": "Statistical baseline mean changed from 0.9499 to 94.9894 (ratio 100.0x) \u2014 indicates a scale change in the underlying data",
+          "action": "Investigate data pipeline for scale/unit change"
+        }
+      ],
+      "compatibility_verdict": "BREAKING",
+      "verdict_message": "1 breaking change(s) detected"
+    },
+    "compatibility_verdict": "BREAKING",
+    "blast_radius": {
+      "affected_contracts": [
+        "week3-document-refinery-extractions"
+      ],
+      "affected_consumers": [
+        "week4-cartographer",
+        "week5-event-sourcing"
+      ],
+      "estimated_impact": "HIGH"
+    },
+    "migration_checklist": [
+      {
+        "step": "Investigate scale/unit change in mean_drift_extracted_facts_confidence \u2014 re-baseline statistics",
+        "priority": "CRITICAL",
+        "deadline": "Immediate"
+      }
+    ],
+    "rollback_plan": {
+      "steps": [
+        "Revert contract to previous snapshot",
+        "Re-run validation on baseline data",
+        "Verify all checks pass",
+        "If using CI/CD, rollback the pipeline version"
+      ],
+      "estimated_time": "15 minutes",
+      "risk_level": "LOW"
+    }
+  }
+}

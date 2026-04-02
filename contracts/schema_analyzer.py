@@ -115,8 +115,45 @@ class SchemaEvolutionAnalyzer:
             "action": "None",
         }
 
+    def classify_check_change(self, check_id: str, old_check: dict, new_check: dict) -> Optional[dict]:
+        """Classify a change in a statistical check clause."""
+        old_params = old_check.get("params", {})
+        new_params = new_check.get("params", {})
+
+        # Detect drift baseline_mean shift > 10x (scale change)
+        old_mean = old_params.get("baseline_mean")
+        new_mean = new_params.get("baseline_mean")
+        if old_mean is not None and new_mean is not None and old_mean != new_mean:
+            ratio = new_mean / old_mean if old_mean != 0 else float("inf")
+            if ratio > 5 or ratio < 0.2:
+                return {
+                    "classification": "BREAKING",
+                    "type": "STAT_BASELINE_SCALE_CHANGE",
+                    "field": check_id,
+                    "description": (
+                        f"Statistical baseline mean changed from {round(old_mean, 4)} "
+                        f"to {round(new_mean, 4)} (ratio {round(ratio, 2)}x) — "
+                        "indicates a scale change in the underlying data"
+                    ),
+                    "action": "Investigate data pipeline for scale/unit change",
+                }
+
+        # Detect range max change
+        old_max = old_params.get("max")
+        new_max = new_params.get("max")
+        if old_max is not None and new_max is not None and old_max != new_max:
+            return {
+                "classification": "BREAKING",
+                "type": "RANGE_CHANGE",
+                "field": check_id,
+                "description": f"Range max changed from {old_max} to {new_max}",
+                "action": "Update downstream validation logic",
+            }
+
+        return None
+
     def diff_snapshots(self) -> dict:
-        """Diff two consecutive snapshots."""
+        """Diff two consecutive snapshots (columns + statistical checks)."""
         if len(self.snapshots) < 2:
             return {
                 "changes": [],
@@ -129,18 +166,42 @@ class SchemaEvolutionAnalyzer:
 
         changes = []
 
+        # --- Column-level diff ---
         old_columns = {c["name"]: c for c in old_snapshot.get("columns", [])}
         new_columns = {c["name"]: c for c in new_snapshot.get("columns", [])}
 
-        all_fields = set(old_columns.keys()) | set(new_columns.keys())
-
-        for field in all_fields:
-            old_clause = old_columns.get(field)
-            new_clause = new_columns.get(field)
-
-            change = self.classify_change(field, old_clause, new_clause)
+        for field in set(old_columns.keys()) | set(new_columns.keys()):
+            change = self.classify_change(field, old_columns.get(field), new_columns.get(field))
             change["field"] = field
             changes.append(change)
+
+        # --- Check-level diff (statistical baselines, ranges) ---
+        old_checks = {c["check_id"]: c for c in old_snapshot.get("checks", [])}
+        new_checks = {c["check_id"]: c for c in new_snapshot.get("checks", [])}
+
+        for check_id in set(old_checks.keys()) | set(new_checks.keys()):
+            if check_id in old_checks and check_id in new_checks:
+                check_change = self.classify_check_change(
+                    check_id, old_checks[check_id], new_checks[check_id]
+                )
+                if check_change:
+                    changes.append(check_change)
+            elif check_id not in old_checks:
+                changes.append({
+                    "classification": "COMPATIBLE",
+                    "type": "CHECK_ADDED",
+                    "field": check_id,
+                    "description": f"New check added: {check_id}",
+                    "action": "None",
+                })
+            else:
+                changes.append({
+                    "classification": "BREAKING",
+                    "type": "CHECK_REMOVED",
+                    "field": check_id,
+                    "description": f"Check removed: {check_id}",
+                    "action": "Verify intentional removal",
+                })
 
         breaking_changes = [c for c in changes if c["classification"] == "BREAKING"]
 
@@ -206,6 +267,22 @@ class SchemaEvolutionAnalyzer:
                         "step": f"Update validation logic for {field}",
                         "priority": "HIGH",
                         "deadline": "Immediate",
+                    }
+                )
+            elif change_type == "STAT_BASELINE_SCALE_CHANGE":
+                migration_checklist.append(
+                    {
+                        "step": f"Investigate scale/unit change in {field} — re-baseline statistics",
+                        "priority": "CRITICAL",
+                        "deadline": "Immediate",
+                    }
+                )
+            elif change_type == "CHECK_REMOVED":
+                migration_checklist.append(
+                    {
+                        "step": f"Verify intentional removal of check {field}",
+                        "priority": "HIGH",
+                        "deadline": "Before next deployment",
                     }
                 )
 
