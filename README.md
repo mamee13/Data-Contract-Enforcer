@@ -74,7 +74,7 @@ python contracts/runner.py \
   --output validation_reports/violated_run.json
 ```
 
-**Expected output:** `validation_reports/violated_run.json` - FAIL for confidence range check
+**Expected output:** `validation_reports/violated_run.json` - FAIL for confidence range check and FAIL for drift check
 
 ### Step 5: Attribute the Violation
 
@@ -83,6 +83,7 @@ python contracts/attributor.py \
   --violation validation_reports/violated_run.json \
   --lineage outputs/week4/lineage_snapshots.jsonl \
   --contract generated_contracts/week3_extractions.yaml \
+  --registry contract_registry/subscriptions.yaml \
   --output violation_log/violations.jsonl
 ```
 

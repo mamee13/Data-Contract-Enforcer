@@ -420,8 +420,9 @@ class TestAttributionChain:
         records = _jsonl_records("violation_log/violations.jsonl")
         for rec in records:
             br = rec.get("blast_radius", {})
-            assert "affected_nodes" in br
-            assert "affected_pipelines" in br
+            assert "direct_subscribers" in br
+            assert "transitive_nodes" in br
+            assert "contamination_depth" in br
             assert "estimated_records" in br
 
     def test_violations_comment_line(self):

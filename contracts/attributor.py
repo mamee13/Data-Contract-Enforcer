@@ -9,6 +9,7 @@ Usage:
     python contracts/attributor.py --violation validation_reports/violated_run.json \
                                    --lineage outputs/week4/lineage_snapshots.jsonl \
                                    --contract generated_contracts/week3_extractions.yaml \
+                                   --registry contract_registry/subscriptions.yaml \
                                    --output violation_log/violations.jsonl
 """
 
@@ -25,15 +26,22 @@ import yaml
 
 class ViolationAttributor:
     def __init__(
-        self, violation_path: str, lineage_path: str, contract_path: str, output_path: str
+        self,
+        violation_path: str,
+        lineage_path: str,
+        contract_path: str,
+        registry_path: str,
+        output_path: str,
     ):
         self.violation_path = violation_path
         self.lineage_path = lineage_path
         self.contract_path = contract_path
+        self.registry_path = registry_path
         self.output_path = output_path
         self.violation_report: Optional[dict] = None
         self.lineage_snapshot: Optional[dict] = None
         self.contract: Optional[dict] = None
+        self.registry: Optional[dict] = None
         self.existing_violations: list[dict] = []
 
     def load_violation_report(self):
@@ -52,6 +60,11 @@ class ViolationAttributor:
         """Load the contract YAML for blast radius computation."""
         with open(self.contract_path) as f:
             self.contract = yaml.safe_load(f)
+
+    def load_registry(self):
+        """Load the contract registry for blast radius computation."""
+        with open(self.registry_path) as f:
+            self.registry = yaml.safe_load(f)
 
     def load_existing_violations(self):
         """Load existing violations from the output file."""
@@ -146,21 +159,94 @@ class ViolationAttributor:
         score = max(0.0, 1.0 - (days_diff * 0.1) - (lineage_distance * 0.2))
         return round(score, 3)
 
-    def compute_blast_radius(self) -> dict:
-        """Compute blast radius from contract lineage.downstream."""
-        assert self.contract is not None
-        downstream = self.contract.get("lineage", {}).get("downstream", [])
+    def _normalize_field(self, field_name: str) -> str:
+        """Normalize column names for registry matching."""
+        return field_name.replace("[*]", "").strip()
 
-        affected_nodes = [d.get("id", "") for d in downstream]
-        affected_pipelines = [
-            d.get("id", "") for d in downstream if "pipeline" in d.get("id", "").lower()
-        ]
+    def _registry_blast_radius(self, contract_id: str, failing_field: str) -> list[dict]:
+        """Return registry subscribers affected by a failing field."""
+        assert self.registry is not None
+        affected: list[dict] = []
+        failing_field = self._normalize_field(failing_field)
+
+        for sub in self.registry.get("subscriptions", []):
+            if sub.get("contract_id") != contract_id:
+                continue
+            for bf in sub.get("breaking_fields", []):
+                bf_field = self._normalize_field(bf.get("field", ""))
+                if not bf_field:
+                    continue
+                if (
+                    failing_field == bf_field
+                    or failing_field.startswith(bf_field)
+                    or bf_field.startswith(failing_field)
+                ):
+                    affected.append(
+                        {
+                            "subscriber_id": sub.get("subscriber_id"),
+                            "subscriber_team": sub.get("subscriber_team"),
+                            "validation_mode": sub.get("validation_mode"),
+                            "contact": sub.get("contact"),
+                            "breaking_field": bf_field,
+                            "reason": bf.get("reason"),
+                        }
+                    )
+                    break
+
+        return affected
+
+    def _lineage_enrichment(self, subscriber_ids: list[str], max_depth: int = 2) -> dict:
+        """Compute transitive contamination depth from lineage graph."""
+        if not self.lineage_snapshot or not subscriber_ids:
+            return {"transitive_nodes": [], "contamination_depth": 0}
+
+        nodes = self.lineage_snapshot.get("nodes", [])
+        edges = self.lineage_snapshot.get("edges", [])
+
+        start_nodes = set()
+        for node in nodes:
+            node_id = node.get("node_id", "")
+            for sid in subscriber_ids:
+                if sid and sid.lower() in node_id.lower():
+                    start_nodes.add(node_id)
+
+        if not start_nodes:
+            return {"transitive_nodes": [], "contamination_depth": 0}
+
+        visited = set(start_nodes)
+        frontier = set(start_nodes)
+        transitive: list[str] = []
+        depth = 0
+
+        for depth in range(1, max_depth + 1):
+            next_frontier = set()
+            for edge in edges:
+                if edge.get("source") in frontier:
+                    target = edge.get("target")
+                    if target and target not in visited:
+                        visited.add(target)
+                        next_frontier.add(target)
+                        transitive.append(target)
+            if not next_frontier:
+                break
+            frontier = next_frontier
+
+        return {"transitive_nodes": transitive, "contamination_depth": depth if transitive else 0}
+
+    def compute_blast_radius(self, failing_field: str) -> dict:
+        """Compute blast radius from registry, with lineage enrichment."""
+        assert self.contract is not None
+        assert self.registry is not None
+
+        contract_id = self.violation_report.get("contract_id", "")
+        direct_subscribers = self._registry_blast_radius(contract_id, failing_field)
+        subscriber_ids = [s.get("subscriber_id") for s in direct_subscribers if s.get("subscriber_id")]
+        enrichment = self._lineage_enrichment(subscriber_ids)
 
         return {
-            "affected_nodes": affected_nodes,
-            "affected_pipelines": affected_pipelines
-            if affected_pipelines
-            else ["extraction-pipeline"],
+            "direct_subscribers": direct_subscribers,
+            "transitive_nodes": enrichment["transitive_nodes"],
+            "contamination_depth": enrichment["contamination_depth"],
             "estimated_records": 0,
         }
 
@@ -223,7 +309,7 @@ class ViolationAttributor:
         for i, candidate in enumerate(blame_chain):
             candidate["rank"] = i + 1
 
-        blast_radius = self.compute_blast_radius()
+        blast_radius = self.compute_blast_radius(column_name)
         blast_radius["estimated_records"] = check_result.get("records_failing", 0)
 
         return {
@@ -247,6 +333,9 @@ class ViolationAttributor:
         print(f"Loading contract from {self.contract_path}...")
         self.load_contract()
 
+        print(f"Loading registry from {self.registry_path}...")
+        self.load_registry()
+
         print("Loading existing violations...")
         self.load_existing_violations()
 
@@ -268,7 +357,9 @@ class ViolationAttributor:
 
         Path(self.output_path).parent.mkdir(parents=True, exist_ok=True)
 
-        comment_line = "# VIOLATION LOG - Do not edit manually\n"
+        comment_line = (
+            "# VIOLATION LOG - injected violation documented (see create_violation.py)\n"
+        )
 
         with open(self.output_path, "w") as f:
             f.write(comment_line)
@@ -291,11 +382,16 @@ def main():
     parser.add_argument("--violation", required=True, help="Path to validation report JSON")
     parser.add_argument("--lineage", required=True, help="Path to lineage snapshot JSONL")
     parser.add_argument("--contract", required=True, help="Path to contract YAML")
+    parser.add_argument(
+        "--registry", required=True, help="Path to contract_registry/subscriptions.yaml"
+    )
     parser.add_argument("--output", required=True, help="Path to output violations JSONL")
 
     args = parser.parse_args()
 
-    attributor = ViolationAttributor(args.violation, args.lineage, args.contract, args.output)
+    attributor = ViolationAttributor(
+        args.violation, args.lineage, args.contract, args.registry, args.output
+    )
 
     attributor.run()
 
