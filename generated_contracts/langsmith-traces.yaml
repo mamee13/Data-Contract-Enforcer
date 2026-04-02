@@ -1,0 +1,191 @@
+bitol_version: 1.1.0
+id: langsmith-traces
+name: Langsmith Traces
+owner: data-governance-team
+description: Generated contract for langsmith-traces
+lineage:
+  downstream:
+  - id: file::src/__init__.py
+    type: FILE
+  - id: file::function:src/orchestrator.py::__init__
+    type: FILE
+  - id: file::src/orchestrator.py
+    type: FILE
+columns:
+- name: trace_id
+  data_type: string
+  description: Field representing id.
+  llm_annotations: []
+- name: run_name
+  data_type: string
+  description: Field representing name.
+  llm_annotations: []
+- name: run_type
+  data_type: string
+  description: Field representing run_type.
+  llm_annotations: []
+- name: inputs
+  data_type: string
+  description: Field representing inputs.
+  llm_annotations: []
+- name: outputs
+  data_type: string
+  description: Field representing outputs.
+  llm_annotations: []
+- name: error
+  data_type: string
+  description: Field representing error.
+  llm_annotations: []
+- name: start_time
+  data_type: string
+  description: Field representing start_time.
+  llm_annotations: []
+- name: end_time
+  data_type: string
+  description: Field representing end_time.
+  llm_annotations: []
+- name: total_tokens
+  data_type: number
+  description: Field representing total_tokens.
+  llm_annotations: []
+- name: prompt_tokens
+  data_type: number
+  description: Field representing prompt_tokens.
+  llm_annotations: []
+- name: completion_tokens
+  data_type: number
+  description: Field representing completion_tokens.
+  llm_annotations: []
+- name: total_cost
+  data_type: number
+  description: Field representing total_cost.
+  llm_annotations: []
+- name: tags
+  data_type: string
+  description: Field representing tags.
+  llm_annotations: []
+- name: parent_run_id
+  data_type: string
+  description: Field representing parent_run_id.
+  llm_annotations: []
+- name: session_id
+  data_type: string
+  description: Field representing session_id.
+  llm_annotations: []
+checks:
+- check_id: not_null_trace_id
+  column_name: trace_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_run_name
+  column_name: run_name
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_run_type
+  column_name: run_type
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_inputs
+  column_name: inputs
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_outputs
+  column_name: outputs
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_error
+  column_name: error
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_start_time
+  column_name: start_time
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_end_time
+  column_name: end_time
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_total_tokens
+  column_name: total_tokens
+  check_type: not_null
+  severity: CRITICAL
+- check_id: range_total_tokens
+  column_name: total_tokens
+  check_type: range
+  params:
+    min: 0.0
+    max: 0.0
+  severity: WARN
+- check_id: mean_drift_total_tokens
+  column_name: total_tokens
+  check_type: drift
+  params:
+    baseline_mean: 0.0
+    std_dev: 0.0
+  severity: WARN
+- check_id: not_null_prompt_tokens
+  column_name: prompt_tokens
+  check_type: not_null
+  severity: CRITICAL
+- check_id: range_prompt_tokens
+  column_name: prompt_tokens
+  check_type: range
+  params:
+    min: 0.0
+    max: 0.0
+  severity: WARN
+- check_id: mean_drift_prompt_tokens
+  column_name: prompt_tokens
+  check_type: drift
+  params:
+    baseline_mean: 0.0
+    std_dev: 0.0
+  severity: WARN
+- check_id: not_null_completion_tokens
+  column_name: completion_tokens
+  check_type: not_null
+  severity: CRITICAL
+- check_id: range_completion_tokens
+  column_name: completion_tokens
+  check_type: range
+  params:
+    min: 0.0
+    max: 0.0
+  severity: WARN
+- check_id: mean_drift_completion_tokens
+  column_name: completion_tokens
+  check_type: drift
+  params:
+    baseline_mean: 0.0
+    std_dev: 0.0
+  severity: WARN
+- check_id: not_null_total_cost
+  column_name: total_cost
+  check_type: not_null
+  severity: CRITICAL
+- check_id: range_total_cost
+  column_name: total_cost
+  check_type: range
+  params:
+    min: 0.0
+    max: 0.0
+  severity: WARN
+- check_id: mean_drift_total_cost
+  column_name: total_cost
+  check_type: drift
+  params:
+    baseline_mean: 0.0
+    std_dev: 0.0
+  severity: WARN
+- check_id: not_null_tags
+  column_name: tags
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_parent_run_id
+  column_name: parent_run_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_session_id
+  column_name: session_id
+  check_type: not_null
+  severity: CRITICAL
