@@ -1,5 +1,5 @@
 {
-  "written_at": "2026-04-01T18:10:21.188539",
+  "written_at": "2026-04-02T20:16:13.918444",
   "columns": {
     "extracted_fact_0_confidence": {
       "mean": 0.9470149253731346,
@@ -378,6 +378,42 @@
       "stddev": 3.385531727330789,
       "min": 1.0,
       "max": 14.0
+    },
+    "confidence": {
+      "mean": 0.82,
+      "stddev": 0.0,
+      "min": 0.82,
+      "max": 0.82
+    },
+    "total_cost": {
+      "mean": 0.0,
+      "stddev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "overall_score": {
+      "mean": 3.5,
+      "stddev": 0.0,
+      "min": 3.5,
+      "max": 3.5
+    },
+    "completion_tokens": {
+      "mean": 0.0,
+      "stddev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "prompt_tokens": {
+      "mean": 0.0,
+      "stddev": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "total_tokens": {
+      "mean": 0.0,
+      "stddev": 0.0,
+      "min": 0.0,
+      "max": 0.0
     }
   }
 }

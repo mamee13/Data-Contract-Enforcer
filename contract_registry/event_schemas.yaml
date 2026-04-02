@@ -1,0 +1,923 @@
+generated_at: '2026-04-02T20:03:05.201220'
+event_schemas:
+- event_type: AgentInputValidated
+  schema:
+    type: object
+    properties:
+      session_id:
+        type: string
+      agent_type:
+        type: string
+      application_id:
+        type: string
+      inputs_validated:
+        type: array
+      validation_duration_ms:
+        type: integer
+      validated_at:
+        type: string
+    required:
+    - agent_type
+    - application_id
+    - inputs_validated
+    - session_id
+    - validated_at
+    - validation_duration_ms
+    additionalProperties: true
+- event_type: AgentNodeExecuted
+  schema:
+    type: object
+    properties:
+      session_id:
+        type: string
+      agent_type:
+        type: string
+      node_name:
+        type: string
+      node_sequence:
+        type: integer
+      input_keys:
+        type: array
+      output_keys:
+        type: array
+      llm_called:
+        type: boolean
+      llm_tokens_input:
+        type: integer
+      llm_tokens_output:
+        type: integer
+      llm_cost_usd:
+        type: number
+      duration_ms:
+        type: integer
+      executed_at:
+        type: string
+    required:
+    - agent_type
+    - duration_ms
+    - executed_at
+    - input_keys
+    - llm_called
+    - llm_cost_usd
+    - llm_tokens_input
+    - llm_tokens_output
+    - node_name
+    - node_sequence
+    - output_keys
+    - session_id
+    additionalProperties: true
+- event_type: AgentOutputWritten
+  schema:
+    type: object
+    properties:
+      session_id:
+        type: string
+      agent_type:
+        type: string
+      application_id:
+        type: string
+      events_written:
+        type: array
+      output_summary:
+        type: string
+      written_at:
+        type: string
+    required:
+    - agent_type
+    - application_id
+    - events_written
+    - output_summary
+    - session_id
+    - written_at
+    additionalProperties: true
+- event_type: AgentSessionCompleted
+  schema:
+    type: object
+    properties:
+      session_id:
+        type: string
+      agent_type:
+        type: string
+      application_id:
+        type: string
+      total_nodes_executed:
+        type: integer
+      total_llm_calls:
+        type: integer
+      total_tokens_used:
+        type: integer
+      total_cost_usd:
+        type: number
+      total_duration_ms:
+        type: integer
+      next_agent_triggered:
+        type: string
+      completed_at:
+        type: string
+    required:
+    - agent_type
+    - application_id
+    - completed_at
+    - next_agent_triggered
+    - session_id
+    - total_cost_usd
+    - total_duration_ms
+    - total_llm_calls
+    - total_nodes_executed
+    - total_tokens_used
+    additionalProperties: true
+- event_type: AgentSessionStarted
+  schema:
+    type: object
+    properties:
+      session_id:
+        type: string
+      agent_type:
+        type: string
+      agent_id:
+        type: string
+      application_id:
+        type: string
+      model_version:
+        type: string
+      langgraph_graph_version:
+        type: string
+      context_source:
+        type: string
+      context_token_count:
+        type: integer
+      started_at:
+        type: string
+    required:
+    - agent_id
+    - agent_type
+    - application_id
+    - context_source
+    - context_token_count
+    - langgraph_graph_version
+    - model_version
+    - session_id
+    - started_at
+    additionalProperties: true
+- event_type: AgentToolCalled
+  schema:
+    type: object
+    properties:
+      session_id:
+        type: string
+      agent_type:
+        type: string
+      tool_name:
+        type: string
+      tool_input_summary:
+        type: string
+      tool_output_summary:
+        type: string
+      tool_duration_ms:
+        type: integer
+      called_at:
+        type: string
+    required:
+    - agent_type
+    - called_at
+    - session_id
+    - tool_duration_ms
+    - tool_input_summary
+    - tool_name
+    - tool_output_summary
+    additionalProperties: true
+- event_type: ApplicationApproved
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      approved_amount_usd:
+        type: string
+      interest_rate_pct:
+        type: number
+      term_months:
+        type: integer
+      conditions:
+        type: array
+      approved_by:
+        type: string
+      effective_date:
+        type: string
+      approved_at:
+        type: string
+    required:
+    - application_id
+    - approved_amount_usd
+    - approved_at
+    - approved_by
+    - conditions
+    - effective_date
+    - interest_rate_pct
+    - term_months
+    additionalProperties: true
+- event_type: ApplicationDeclined
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      decline_reasons:
+        type: array
+      declined_by:
+        type: string
+      adverse_action_notice_required:
+        type: boolean
+      adverse_action_codes:
+        type: array
+      declined_at:
+        type: string
+    required:
+    - adverse_action_codes
+    - adverse_action_notice_required
+    - application_id
+    - decline_reasons
+    - declined_at
+    - declined_by
+    additionalProperties: true
+- event_type: ApplicationSubmitted
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      applicant_id:
+        type: string
+      requested_amount_usd:
+        type: string
+      loan_purpose:
+        type: string
+      loan_term_months:
+        type: integer
+      submission_channel:
+        type: string
+      contact_email:
+        type: string
+      contact_name:
+        type: string
+      submitted_at:
+        type: string
+      application_reference:
+        type: string
+    required:
+    - applicant_id
+    - application_id
+    - application_reference
+    - contact_email
+    - contact_name
+    - loan_purpose
+    - loan_term_months
+    - requested_amount_usd
+    - submission_channel
+    - submitted_at
+    additionalProperties: true
+- event_type: ComplianceCheckCompleted
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      rules_evaluated:
+        type: integer
+      rules_passed:
+        type: integer
+      rules_failed:
+        type: integer
+      rules_noted:
+        type: integer
+      has_hard_block:
+        type: boolean
+      overall_verdict:
+        type: string
+      completed_at:
+        type: string
+    required:
+    - application_id
+    - completed_at
+    - has_hard_block
+    - overall_verdict
+    - rules_evaluated
+    - rules_failed
+    - rules_noted
+    - rules_passed
+    - session_id
+    additionalProperties: true
+- event_type: ComplianceCheckInitiated
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      regulation_set_version:
+        type: string
+      rules_to_evaluate:
+        type: array
+      initiated_at:
+        type: string
+    required:
+    - application_id
+    - initiated_at
+    - regulation_set_version
+    - rules_to_evaluate
+    - session_id
+    additionalProperties: true
+- event_type: ComplianceCheckRequested
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      requested_at:
+        type: string
+      triggered_by_event_id:
+        type: string
+      regulation_set_version:
+        type: string
+      rules_to_evaluate:
+        type: array
+    required:
+    - application_id
+    - regulation_set_version
+    - requested_at
+    - rules_to_evaluate
+    - triggered_by_event_id
+    additionalProperties: true
+- event_type: ComplianceRuleFailed
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      rule_id:
+        type: string
+      rule_name:
+        type: string
+      rule_version:
+        type: string
+      failure_reason:
+        type: string
+      is_hard_block:
+        type: boolean
+      remediation_available:
+        type: boolean
+      evidence_hash:
+        type: string
+      evaluated_at:
+        type: string
+    required:
+    - application_id
+    - evaluated_at
+    - evidence_hash
+    - failure_reason
+    - is_hard_block
+    - remediation_available
+    - rule_id
+    - rule_name
+    - rule_version
+    - session_id
+    additionalProperties: true
+- event_type: ComplianceRuleNoted
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      rule_id:
+        type: string
+      rule_name:
+        type: string
+      note_type:
+        type: string
+      note_text:
+        type: string
+      evaluated_at:
+        type: string
+    required:
+    - application_id
+    - evaluated_at
+    - note_text
+    - note_type
+    - rule_id
+    - rule_name
+    - session_id
+    additionalProperties: true
+- event_type: ComplianceRulePassed
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      rule_id:
+        type: string
+      rule_name:
+        type: string
+      rule_version:
+        type: string
+      evidence_hash:
+        type: string
+      evaluation_notes:
+        type: string
+      evaluated_at:
+        type: string
+    required:
+    - application_id
+    - evaluated_at
+    - evaluation_notes
+    - evidence_hash
+    - rule_id
+    - rule_name
+    - rule_version
+    - session_id
+    additionalProperties: true
+- event_type: CreditAnalysisCompleted
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      decision:
+        type: object
+      model_version:
+        type: string
+      model_deployment_id:
+        type: string
+      input_data_hash:
+        type: string
+      analysis_duration_ms:
+        type: integer
+      regulatory_basis:
+        type: array
+      completed_at:
+        type: string
+    required:
+    - analysis_duration_ms
+    - application_id
+    - completed_at
+    - decision
+    - input_data_hash
+    - model_deployment_id
+    - model_version
+    - regulatory_basis
+    - session_id
+    additionalProperties: true
+- event_type: CreditAnalysisRequested
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      requested_at:
+        type: string
+      requested_by:
+        type: string
+      priority:
+        type: string
+    required:
+    - application_id
+    - priority
+    - requested_at
+    - requested_by
+    additionalProperties: true
+- event_type: CreditRecordOpened
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      applicant_id:
+        type: string
+      opened_at:
+        type: string
+    required:
+    - applicant_id
+    - application_id
+    - opened_at
+    additionalProperties: true
+- event_type: DecisionGenerated
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      orchestrator_session_id:
+        type: string
+      recommendation:
+        type: string
+      confidence:
+        type: number
+      approved_amount_usd:
+        type: string
+      conditions:
+        type: array
+      executive_summary:
+        type: string
+      key_risks:
+        type: array
+      contributing_sessions:
+        type: array
+      model_versions:
+        type: object
+      generated_at:
+        type: string
+    required:
+    - application_id
+    - approved_amount_usd
+    - conditions
+    - confidence
+    - contributing_sessions
+    - executive_summary
+    - generated_at
+    - key_risks
+    - model_versions
+    - orchestrator_session_id
+    - recommendation
+    additionalProperties: true
+- event_type: DecisionRequested
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      requested_at:
+        type: string
+      all_analyses_complete:
+        type: boolean
+      triggered_by_event_id:
+        type: string
+    required:
+    - all_analyses_complete
+    - application_id
+    - requested_at
+    - triggered_by_event_id
+    additionalProperties: true
+- event_type: DocumentAdded
+  schema:
+    type: object
+    properties:
+      package_id:
+        type: string
+      document_id:
+        type: string
+      document_type:
+        type: string
+      document_format:
+        type: string
+      file_hash:
+        type: string
+      added_at:
+        type: string
+    required:
+    - added_at
+    - document_format
+    - document_id
+    - document_type
+    - file_hash
+    - package_id
+    additionalProperties: true
+- event_type: DocumentFormatValidated
+  schema:
+    type: object
+    properties:
+      package_id:
+        type: string
+      document_id:
+        type: string
+      document_type:
+        type: string
+      page_count:
+        type: integer
+      detected_format:
+        type: string
+      validated_at:
+        type: string
+    required:
+    - detected_format
+    - document_id
+    - document_type
+    - package_id
+    - page_count
+    - validated_at
+    additionalProperties: true
+- event_type: DocumentUploadRequested
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      required_document_types:
+        type: array
+      deadline:
+        type: string
+      requested_by:
+        type: string
+    required:
+    - application_id
+    - deadline
+    - requested_by
+    - required_document_types
+    additionalProperties: true
+- event_type: DocumentUploaded
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      document_id:
+        type: string
+      document_type:
+        type: string
+      document_format:
+        type: string
+      filename:
+        type: string
+      file_path:
+        type: string
+      file_size_bytes:
+        type: integer
+      file_hash:
+        type: string
+      fiscal_year:
+        type: integer
+      uploaded_at:
+        type: string
+      uploaded_by:
+        type: string
+    required:
+    - application_id
+    - document_format
+    - document_id
+    - document_type
+    - file_hash
+    - file_path
+    - file_size_bytes
+    - filename
+    - fiscal_year
+    - uploaded_at
+    - uploaded_by
+    additionalProperties: true
+- event_type: ExtractedFactsConsumed
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      document_ids_consumed:
+        type: array
+      facts_summary:
+        type: string
+      quality_flags_present:
+        type: boolean
+      consumed_at:
+        type: string
+    required:
+    - application_id
+    - consumed_at
+    - document_ids_consumed
+    - facts_summary
+    - quality_flags_present
+    - session_id
+    additionalProperties: true
+- event_type: ExtractionCompleted
+  schema:
+    type: object
+    properties:
+      package_id:
+        type: string
+      document_id:
+        type: string
+      document_type:
+        type: string
+      facts:
+        type: object
+      raw_text_length:
+        type: integer
+      tables_extracted:
+        type: integer
+      processing_ms:
+        type: integer
+      completed_at:
+        type: string
+    required:
+    - completed_at
+    - document_id
+    - document_type
+    - facts
+    - package_id
+    - processing_ms
+    - raw_text_length
+    - tables_extracted
+    additionalProperties: true
+- event_type: ExtractionStarted
+  schema:
+    type: object
+    properties:
+      package_id:
+        type: string
+      document_id:
+        type: string
+      document_type:
+        type: string
+      pipeline_version:
+        type: string
+      extraction_model:
+        type: string
+      started_at:
+        type: string
+    required:
+    - document_id
+    - document_type
+    - extraction_model
+    - package_id
+    - pipeline_version
+    - started_at
+    additionalProperties: true
+- event_type: FraudScreeningCompleted
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      fraud_score:
+        type: number
+      risk_level:
+        type: string
+      anomalies_found:
+        type: integer
+      recommendation:
+        type: string
+      screening_model_version:
+        type: string
+      input_data_hash:
+        type: string
+      completed_at:
+        type: string
+    required:
+    - anomalies_found
+    - application_id
+    - completed_at
+    - fraud_score
+    - input_data_hash
+    - recommendation
+    - risk_level
+    - screening_model_version
+    - session_id
+    additionalProperties: true
+- event_type: FraudScreeningInitiated
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      screening_model_version:
+        type: string
+      initiated_at:
+        type: string
+    required:
+    - application_id
+    - initiated_at
+    - screening_model_version
+    - session_id
+    additionalProperties: true
+- event_type: FraudScreeningRequested
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      requested_at:
+        type: string
+      triggered_by_event_id:
+        type: string
+    required:
+    - application_id
+    - requested_at
+    - triggered_by_event_id
+    additionalProperties: true
+- event_type: HistoricalProfileConsumed
+  schema:
+    type: object
+    properties:
+      application_id:
+        type: string
+      session_id:
+        type: string
+      fiscal_years_loaded:
+        type: array
+      has_prior_loans:
+        type: boolean
+      has_defaults:
+        type: boolean
+      revenue_trajectory:
+        type: string
+      data_hash:
+        type: string
+      consumed_at:
+        type: string
+    required:
+    - application_id
+    - consumed_at
+    - data_hash
+    - fiscal_years_loaded
+    - has_defaults
+    - has_prior_loans
+    - revenue_trajectory
+    - session_id
+    additionalProperties: true
+- event_type: PackageCreated
+  schema:
+    type: object
+    properties:
+      package_id:
+        type: string
+      application_id:
+        type: string
+      required_documents:
+        type: array
+      created_at:
+        type: string
+    required:
+    - application_id
+    - created_at
+    - package_id
+    - required_documents
+    additionalProperties: true
+- event_type: PackageReadyForAnalysis
+  schema:
+    type: object
+    properties:
+      package_id:
+        type: string
+      application_id:
+        type: string
+      documents_processed:
+        type: integer
+      has_quality_flags:
+        type: boolean
+      quality_flag_count:
+        type: integer
+      ready_at:
+        type: string
+    required:
+    - application_id
+    - documents_processed
+    - has_quality_flags
+    - package_id
+    - quality_flag_count
+    - ready_at
+    additionalProperties: true
+- event_type: QualityAssessmentCompleted
+  schema:
+    type: object
+    properties:
+      package_id:
+        type: string
+      document_id:
+        type: string
+      overall_confidence:
+        type: number
+      is_coherent:
+        type: boolean
+      anomalies:
+        type: array
+      critical_missing_fields:
+        type: array
+      reextraction_recommended:
+        type: boolean
+      auditor_notes:
+        type: string
+      assessed_at:
+        type: string
+    required:
+    - anomalies
+    - assessed_at
+    - auditor_notes
+    - critical_missing_fields
+    - document_id
+    - is_coherent
+    - overall_confidence
+    - package_id
+    - reextraction_recommended
+    additionalProperties: true

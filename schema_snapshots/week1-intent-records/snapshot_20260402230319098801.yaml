@@ -4,18 +4,7 @@ name: Week1 Intent Records
 owner: data-governance-team
 description: Generated contract for week1-intent-records
 lineage:
-  registry_subscribers:
-  - subscriber_id: week2-courtroom
-    subscriber_team: week2
-    fields_consumed:
-    - code_refs
-    - governance_tags
-    - created_at
-    breaking_fields:
-    - field: code_refs.file
-      reason: verdict.target_ref must resolve to a code_refs.file path
-    validation_mode: AUDIT
-    contact: week2-team@org.com
+  registry_subscribers: []
   downstream_nodes_from_lineage:
   - id: file::src/__init__.py
     type: FILE

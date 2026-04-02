@@ -4,86 +4,147 @@ name: Langsmith Traces
 owner: data-governance-team
 description: Generated contract for langsmith-traces
 lineage:
-  downstream:
+  registry_subscribers:
+  - subscriber_id: week7-enforcer
+    subscriber_team: week7
+    fields_consumed:
+    - id
+    - run_type
+    - start_time
+    - end_time
+    - total_tokens
+    breaking_fields:
+    - field: end_time
+      reason: trace duration checks require end_time > start_time
+    - field: total_tokens
+      reason: total_tokens = prompt_tokens + completion_tokens
+    validation_mode: AUDIT
+    contact: week7-team@org.com
+  downstream_nodes_from_lineage:
   - id: file::src/__init__.py
     type: FILE
   - id: file::function:src/orchestrator.py::__init__
     type: FILE
   - id: file::src/orchestrator.py
     type: FILE
+  note: Blast radius is computed from registry subscribers; lineage nodes are enrichment
+    only.
 columns:
-- name: trace_id
+- name: id
   data_type: string
-  description: Field representing id.
+  description: Id field.
   llm_annotations: []
-- name: run_name
+- name: name
   data_type: string
-  description: Field representing name.
+  description: Name field.
   llm_annotations: []
 - name: run_type
   data_type: string
-  description: Field representing run_type.
+  description: Run Type field.
   llm_annotations: []
 - name: inputs
   data_type: string
-  description: Field representing inputs.
+  description: Inputs field.
   llm_annotations: []
 - name: outputs
   data_type: string
-  description: Field representing outputs.
+  description: Outputs field.
   llm_annotations: []
 - name: error
   data_type: string
-  description: Field representing error.
+  description: Error field.
   llm_annotations: []
 - name: start_time
   data_type: string
-  description: Field representing start_time.
+  description: Start Time field.
   llm_annotations: []
 - name: end_time
   data_type: string
-  description: Field representing end_time.
+  description: End Time field.
   llm_annotations: []
 - name: total_tokens
   data_type: number
-  description: Field representing total_tokens.
+  description: Total Tokens field.
   llm_annotations: []
 - name: prompt_tokens
   data_type: number
-  description: Field representing prompt_tokens.
+  description: Prompt Tokens field.
   llm_annotations: []
 - name: completion_tokens
   data_type: number
-  description: Field representing completion_tokens.
+  description: Completion Tokens field.
   llm_annotations: []
 - name: total_cost
   data_type: number
-  description: Field representing total_cost.
+  description: Total Cost field.
   llm_annotations: []
 - name: tags
   data_type: string
-  description: Field representing tags.
+  description: Tags field.
   llm_annotations: []
 - name: parent_run_id
   data_type: string
-  description: Field representing parent_run_id.
+  description: Parent Run Id field.
   llm_annotations: []
 - name: session_id
   data_type: string
-  description: Field representing session_id.
+  description: Session Id field.
   llm_annotations: []
 checks:
-- check_id: not_null_trace_id
-  column_name: trace_id
+- check_id: not_null_id
+  column_name: id
   check_type: not_null
   severity: CRITICAL
-- check_id: not_null_run_name
-  column_name: run_name
+- check_id: not_null_name
+  column_name: name
   check_type: not_null
   severity: CRITICAL
+- check_id: enum_name
+  column_name: name
+  check_type: enum
+  params:
+    values:
+    - agent.session.complete
+    - agent.session.fail
+    - agent.session.start
+    - agentinputvalidated
+    - compliance.check
+    - credit.analysis
+    - fraud.screening
+    - node:analyze_credit_risk
+    - node:analyze_fraud_patterns
+    - node:apply_policy_constraints
+    - node:assess_quality
+    - node:cross_reference_registry
+    - node:evaluate_reg_001
+    - node:evaluate_reg_002
+    - node:evaluate_reg_003
+    - node:extract_balance_sheet
+    - node:extract_income_statement
+    - node:load_applicant_registry
+    - node:load_company_profile
+    - node:load_document_facts
+    - node:load_extracted_facts
+    - node:open_credit_record
+    - node:validate_document_formats
+    - node:validate_inputs
+    - node:write_output
+    - tool:load_event_store_stream
+    - tool:query_applicant_registry
+    - tool:week3_extraction_pipeline
+  severity: HIGH
 - check_id: not_null_run_type
   column_name: run_type
   check_type: not_null
+  severity: CRITICAL
+- check_id: enum_run_type
+  column_name: run_type
+  check_type: enum
+  params:
+    values:
+    - chain
+    - llm
+    - tool
   severity: CRITICAL
 - check_id: not_null_inputs
   column_name: inputs
@@ -91,10 +152,6 @@ checks:
   severity: CRITICAL
 - check_id: not_null_outputs
   column_name: outputs
-  check_type: not_null
-  severity: CRITICAL
-- check_id: not_null_error
-  column_name: error
   check_type: not_null
   severity: CRITICAL
 - check_id: not_null_start_time
@@ -179,10 +236,6 @@ checks:
   severity: WARN
 - check_id: not_null_tags
   column_name: tags
-  check_type: not_null
-  severity: CRITICAL
-- check_id: not_null_parent_run_id
-  column_name: parent_run_id
   check_type: not_null
   severity: CRITICAL
 - check_id: not_null_session_id

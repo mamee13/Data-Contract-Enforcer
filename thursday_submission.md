@@ -57,29 +57,29 @@ flowchart TD
 
     W1N -->|"① intent_record\ntarget_ref = code_refs[].file\n[NO CONTRACT — cross-file FK\nnot yet enforced]"| W2N
 
-    W3N -->|"② extraction_record → lineage node\ndoc_id becomes node_id: 'doc::'\nextracted_facts[] stored as\nnode metadata in Cartographer\nconfidence: float 0–1 ⚠ CRITICAL\n[CONTRACT: week3_extractions.yaml]"| W4N
+    W3N -->|"② extraction_record → lineage node\ndoc_id becomes node_id: 'doc::'\nextracted_facts[] stored as\nnode metadata in Cartographer\nconfidence: float 0–1 ⚠ CRITICAL\n[CONTRACT: week3-document-refinery-extractions.yaml]"| W4N
 
     W3N -->|"③ DocumentProcessed event\npayload: { doc_id, extraction_model,\n  token_count, fact_count }\nsource_service: week3-document-refinery\n[NO CONTRACT — payload schema\nnot yet written]"| W5N
 
     %% ── Feeds into Enforcer ─────────────────────────────────────────────────
 
-    W1N -->|"intent_record — full schema\ncode_refs[].confidence: float 0–1\ncreated_at: ISO 8601\n[CONTRACT: week1_intent_records.yaml]"| GEN
+    W1N -->|"intent_record — full schema\ncode_refs[].confidence: float 0–1\ncreated_at: ISO 8601\n[CONTRACT: week1-intent-records.yaml]"| GEN
 
     W2N -->|"verdict_record — full schema\noverall_verdict: PASS|FAIL|WARN\noverall_score = weighted mean(scores)\n[PARTIAL: logic in ai_extensions.py\nnot yet a YAML contract clause]"| GEN
 
     W2N -->|"verdict records\nfor LLM output schema validation\nviolation_rate per prompt_hash"| AI
 
-    W3N -->|"extraction_record — full schema\nextracted_facts[].confidence ⚠ CRITICAL\n[CONTRACT: week3_extractions.yaml\n11 checks — range + drift]"| GEN
+    W3N -->|"extraction_record — full schema\nextracted_facts[].confidence ⚠ CRITICAL\n[CONTRACT: week3-document-refinery-extractions.yaml\n11 checks — range + drift]"| GEN
 
     W3N -->|"extracted_facts[].text\nfor embedding drift baseline\n(text-embedding-3-small / TF-IDF)"| AI
 
-    W4N -->|"lineage_snapshot — full schema\nnodes[] + edges[]\n[CONTRACT: week4_lineage.yaml]"| GEN
+    W4N -->|"lineage_snapshot — full schema\nnodes[] + edges[]\n[CONTRACT: week4-lineage.yaml]"| GEN
 
     W4N -->|"lineage graph\nBFS upstream traversal\nfor blame chain construction"| ATT
 
-    W5N -->|"event_record — full schema\nsequence_number monotonic per aggregate\n[CONTRACT: week5_events.yaml\n12 checks — range + drift]"| GEN
+    W5N -->|"event_record — full schema\nsequence_number monotonic per aggregate\n[CONTRACT: week5-event-records.yaml\n12 checks — range + drift]"| GEN
 
-    LSOUT -->|"trace_record — full schema\nend_time > start_time\ntotal_tokens = prompt + completion\n[CONTRACT: langsmith_traces.yaml]"| GEN
+    LSOUT -->|"trace_record — full schema\nend_time > start_time\ntotal_tokens = prompt + completion\n[CONTRACT: langsmith-traces.yaml]"| GEN
 
     LSOUT -->|"trace records\nfor trace contract enforcement\n4 checks enforced"| AI
 
@@ -98,15 +98,15 @@ flowchart TD
 
 | Interface | Producer | Consumer | Contract File | Status | Gap Risk |
 |-----------|----------|----------|--------------|--------|----------|
-| intent_record → verdict | Week 1 | Week 2 | — | No | **High.** `target_ref` in live verdict data is `"automaton-auditor-swarm"` — a system name, not a `code_refs.file` path. The cross-system foreign key is already broken in the data. Without a contract enforcing this reference, the Digital Courtroom can evaluate the wrong target indefinitely with no signal. Requires a cross-JSONL join at validation time; deferred to Sunday. |
-| intent_record → enforcer | Week 1 | Week 7 | `week1_intent_records.yaml` | Yes | 7 structural checks: `confidence` range 0–1, `created_at` ISO 8601, `code_refs` not_null. |
-| verdict_record → enforcer | Week 2 | Week 7 | *(none — logic in code)* | Partial | **Medium.** `overall_verdict` enum check and `overall_score` weighted-mean validation are implemented in `ai_extensions.py` but not as clauses in a dedicated `week2_verdicts.yaml`. If the runner is pointed at verdicts data directly, no contract file exists to load. A silent schema change to `overall_verdict` would not be caught by the ContractGenerator pipeline. Dedicated YAML planned for Sunday. |
-| extraction_record → lineage | Week 3 | Week 4 | `week3_extractions.yaml` | Yes | The `extracted_facts[].confidence` range clause (0.0–1.0) is the primary guard. `doc_id` not_null ensures the Cartographer always has a stable node key. |
-| extraction_record → events | Week 3 | Week 5 | — | No | **Medium.** Week 3 emits `DocumentProcessed` events whose `payload` schema is undefined. A change to the payload structure would break Week 5 consumers silently. Planned for Sunday. |
-| extraction_record → enforcer | Week 3 | Week 7 | `week3_extractions.yaml` | Yes | 11 checks: not_null on all 9 columns, range + drift on `processing_time_ms`. The confidence range clause is the critical one. |
-| lineage_snapshot → attributor | Week 4 | Week 7 | `week4_lineage.yaml` | Yes | Structural checks on `nodes[]`, `edges[]`, `snapshot_id`, `git_commit`. The ViolationAttributor depends on this contract being satisfied before it traverses the graph. |
-| event_record → enforcer | Week 5 | Week 7 | `week5_events.yaml` | Yes | 12 checks: not_null on all 10 columns, range + drift on `sequence_number`. **Known gap:** monotonicity per `aggregate_id` is not yet a contract clause. Live data shows 29 of 89 aggregates have duplicate sequence numbers — this violation passes all 12 current checks silently. |
-| trace_record → enforcer | LangSmith | Week 7 | `langsmith_traces.yaml` | Yes | All four spec targets enforced: `end_time > start_time`, `total_tokens = prompt_tokens + completion_tokens`, `run_type` enum, `total_cost ≥ 0`. |
+| intent_record → verdict | Week 1 | Week 2 | `week2-verdict-records.yaml` | Yes | **High.** A foreign‑key contract check now enforces `verdict.target_ref ∈ intent.code_refs[].file`. Live data still violates the FK (`target_ref` contains system names), so the contract now surfaces the break instead of letting it pass silently. |
+| intent_record → enforcer | Week 1 | Week 7 | `week1-intent-records.yaml` | Yes | 7 structural checks: `confidence` range 0–1, `created_at` ISO 8601, `code_refs` not_null. |
+| verdict_record → enforcer | Week 2 | Week 7 | `week2-verdict-records.yaml` | Yes | **Medium.** Contract now exists and is enforced via the standard runner. Weighted‑mean logic still lives in `ai_extensions.py`, but schema changes (like `overall_verdict` drift) are caught by the YAML contract pipeline. |
+| extraction_record → lineage | Week 3 | Week 4 | `week3-document-refinery-extractions.yaml` | Yes | The `extracted_facts[].confidence` range clause (0.0–1.0) is the primary guard. `doc_id` not_null ensures the Cartographer always has a stable node key. |
+| extraction_record → events | Week 3 | Week 5 | `week5-event-records.yaml` + `contract_registry/event_schemas.yaml` | Yes | **Medium.** Payloads are now validated per `event_type` against the registry, so schema drift is detected at ingestion. |
+| extraction_record → enforcer | Week 3 | Week 7 | `week3-document-refinery-extractions.yaml` | Yes | 11 checks: not_null on all 9 columns, range + drift on `processing_time_ms`. The confidence range clause is the critical one. |
+| lineage_snapshot → attributor | Week 4 | Week 7 | `week4-lineage.yaml` | Yes | Structural checks on `nodes[]`, `edges[]`, `snapshot_id`, `git_commit`. The ViolationAttributor depends on this contract being satisfied before it traverses the graph. |
+| event_record → enforcer | Week 5 | Week 7 | `week5-event-records.yaml` | Yes | Monotonicity per `aggregate_id` is now enforced via `monotonic_per_group`, so duplicate or gapped sequences fail validation instead of passing silently. |
+| trace_record → enforcer | LangSmith | Week 7 | `langsmith-traces.yaml` | Yes | All four spec targets enforced: `end_time > start_time`, `total_tokens = prompt_tokens + completion_tokens`, `run_type` enum, `total_cost ≥ 0`. |
 
 **Coverage summary:** 6 of 9 interfaces have contracts. The highest-risk gap is the Week 1 → Week 2 interface, where the foreign key constraint is already violated in live data and no contract exists to catch it. The second-highest risk is the missing `week2_verdicts.yaml` — the validation logic exists in code but is not wired into the contract pipeline, meaning a schema change to verdict records would not trigger the ContractGenerator's enforcement path.
 
@@ -155,7 +155,7 @@ Two independent mechanisms caught the same violation. The range check caught it 
 
 The reason both checks matter is that they fail for different reasons and can be disabled independently. A range check requires someone to have written the correct bounds into the contract. A drift check requires only a clean baseline run — it would catch a confidence scale change even if the contract had no range clause at all, because the mean shifting from 0.95 to 94.99 is statistically impossible under normal variation. Together they form a two-layer defence: the range check catches the violation at the boundary, and the drift check catches it even if the boundary was never formally declared. This is the core argument for statistical contract enforcement alongside structural enforcement — structural checks tell you what you promised, statistical checks tell you when reality diverged from the promise regardless of what you wrote down.
 
-**Attribution:** The violation was traced to commit `e8422ab` ("Add data outputs for contract validation") via the Week 4 lineage graph. The ViolationAttributor traversed the graph from the failing column (`extracted_facts[*].confidence`) upstream to the files that produced the data, then ran `git log` against those files to find the most recent commits. The blast radius — `week4-cartographer` and `week5-event-sourcing` — was derived from the `lineage.downstream` field in `week3_extractions.yaml`, not from re-traversing the graph. This separation matters: blast radius is a contract-level declaration of who depends on this data, while the blame chain is a runtime traversal of who last touched it.
+**Attribution:** The violation was traced to commit `e8422ab` ("Add data outputs for contract validation") via the Week 4 lineage graph. The ViolationAttributor traversed the graph from the failing column (`extracted_facts[*].confidence`) upstream to the files that produced the data, then ran `git log` against those files to find the most recent commits. The blast radius — `week4-cartographer` and `week5-event-sourcing` — was derived from the `lineage.downstream` field in `week3-document-refinery-extractions.yaml`, not from re-traversing the graph. This separation matters: blast radius is a contract-level declaration of who depends on this data, while the blame chain is a runtime traversal of who last touched it.
 
 ---
 
@@ -165,7 +165,7 @@ Writing contracts for my own systems forced me to treat past-me as a third party
 
 The first discovery came from the statistical profiling step, not from writing contract clauses. When I profiled `extracted_facts[*].confidence` across 3,791 facts, I found that 3,790 of them have confidence exactly 0.95. One fact has confidence 0.55. The standard deviation is 0.006. That is not a confidence distribution — that is a clamped output. The extraction model is returning the same value for almost every fact regardless of actual certainty. I would not have found this by reading the code or inspecting a few records manually. Before writing the contract, I thought of confidence as a meaningful signal that downstream systems could use for filtering or ranking. After profiling it, I understand it as a constant — and any downstream system that branches on confidence is making decisions based on noise. The contract now flags any mean above 0.99 as suspicious, but the real fix is upstream: the prompting strategy needs to be redesigned to produce genuine uncertainty estimates, not a default value.
 
-The second discovery was about the Week 5 event sequence numbers. I assumed they were monotonically increasing per aggregate because that is what the schema says and what the event sourcing pattern requires. When I checked the live data, I found that 29 of 89 aggregates have duplicate sequence numbers. The contract checks that sequence numbers are in the range 1–14, which passes — but it does not check monotonicity, so the violation is invisible to the current enforcement. This exposed a gap in how I think about contract design: I wrote the range check because it was easy to express statistically, and I skipped the monotonicity check because it required a different kind of logic. The lesson is that the hardest invariants to enforce are often the most important ones. An event log with duplicate sequence numbers cannot be reliably replayed, which breaks the core guarantee of the entire Week 5 system. I now think of contract clauses not as a list of things that are easy to check, but as a list of invariants whose violation would cause silent corruption — and I work backwards from the corruption to the check.
+The second discovery was about the Week 5 event sequence numbers. I assumed they were monotonically increasing per aggregate because that is what the schema says and what the event sourcing pattern requires. When I checked the live data, I found that 29 of 89 aggregates have duplicate sequence numbers. I added a monotonicity check (`monotonic_per_group`) so those violations now fail validation instead of passing silently. The lesson remains: the hardest invariants to enforce are often the most important ones. An event log with duplicate sequence numbers cannot be reliably replayed, which breaks the core guarantee of the entire Week 5 system. I now think of contract clauses not as a list of things that are easy to check, but as a list of invariants whose violation would cause silent corruption — and I work backwards from the corruption to the check.
 
 The third discovery was about the lineage graph as a blame-chain source. The Week 4 Cartographer maps the internal Python codebase — files, imports, function calls. When the ViolationAttributor traverses the graph to find what produced a failing column, it finds internal orchestrator files, not the data pipeline scripts that wrote the JSONL outputs. The graph is accurate about code structure but blind to data provenance. The blame chain points to the right commit but for the wrong reason — it finds the commit because the data file was added in that commit, not because the graph traversal identified the producing code. Before building the attributor, I assumed that a code lineage graph and a data lineage graph were the same thing at different levels of abstraction. They are not. Code lineage tracks how functions call each other; data lineage tracks how records flow between systems. The Week 4 graph answers "what imports what" — it does not answer "what wrote this JSONL file." Building a real blame chain requires a data lineage graph, not a code lineage graph, and that is a different system to build.
 

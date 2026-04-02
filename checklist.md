@@ -8,14 +8,14 @@ This checklist is distilled from the project brief and practitioner manual. It i
 
 1. `contracts/generator.py` runs via CLI without errors.
 2. Generates Bitol-compatible YAML contracts at minimum:
-3. `generated_contracts/week3_extractions.yaml`
-4. `generated_contracts/week5_events.yaml`
+3. `generated_contracts/week3-document-refinery-extractions.yaml`
+4. `generated_contracts/week5-event-records.yaml`
 5. Each contract includes **structural + statistical** clauses (not just schema).
 6. LLM annotations are present for ambiguous columns.
 7. Lineage context injected (`lineage.downstream` populated).
 8. dbt schema.yml output exists for each contract:
-9. `generated_contracts/week3_extractions_dbt.yml`
-10. `generated_contracts/week5_events_dbt.yml`
+9. `generated_contracts/week3-document-refinery-extractions_dbt.yml`
+10. `generated_contracts/week5-event-records_dbt.yml`
 11. Contract quality proof: `DOMAIN_NOTES.md` shows >70% clauses survive manual review, with the measured fraction documented.
 
 ---

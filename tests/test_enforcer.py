@@ -136,16 +136,17 @@ class TestFoundationRecordKeys:
 # ===========================================================================
 
 CONTRACT_PATHS = [
-    "generated_contracts/week1_intent_records.yaml",
-    "generated_contracts/week3_extractions.yaml",
-    "generated_contracts/week4_lineage.yaml",
-    "generated_contracts/week5_events.yaml",
-    "generated_contracts/langsmith_traces.yaml",
+    "generated_contracts/week1-intent-records.yaml",
+    "generated_contracts/week2-verdict-records.yaml",
+    "generated_contracts/week3-document-refinery-extractions.yaml",
+    "generated_contracts/week4-lineage.yaml",
+    "generated_contracts/week5-event-records.yaml",
+    "generated_contracts/langsmith-traces.yaml",
 ]
 
 DBT_PATHS = [
-    "generated_contracts/week3_extractions_dbt.yml",
-    "generated_contracts/week5_events_dbt.yml",
+    "generated_contracts/week3-document-refinery-extractions_dbt.yml",
+    "generated_contracts/week5-event-records_dbt.yml",
 ]
 
 PROMPT_INPUT_PATH = "generated_contracts/prompt_inputs/week3_extraction_prompt_input.json"
@@ -171,12 +172,12 @@ class TestContractsCore:
         assert len(data["models"]) >= 1
 
     def test_week3_clause_count(self):
-        with open("generated_contracts/week3_extractions.yaml") as f:
+        with open("generated_contracts/week3-document-refinery-extractions.yaml") as f:
             data = yaml.safe_load(f)
         assert len(data.get("checks", [])) >= 8
 
     def test_week5_clause_count(self):
-        with open("generated_contracts/week5_events.yaml") as f:
+        with open("generated_contracts/week5-event-records.yaml") as f:
             data = yaml.safe_load(f)
         assert len(data.get("checks", [])) >= 6
 
@@ -189,6 +190,7 @@ class TestContractsCore:
 
     @pytest.mark.parametrize("contract_id", [
         "week1-intent-records",
+        "week2-verdict-records",
         "week3-document-refinery-extractions",
         "week4-lineage",
         "week5-event-records",
@@ -204,8 +206,9 @@ class TestContractsCore:
     def test_lineage_downstream_not_empty(self, path):
         with open(path) as f:
             data = yaml.safe_load(f)
-        downstream = data.get("lineage", {}).get("downstream", [])
-        assert len(downstream) >= 1, f"lineage.downstream is empty in {path}"
+        lineage = data.get("lineage", {})
+        downstream = lineage.get("downstream_nodes_from_lineage", [])
+        assert len(downstream) >= 1, f"lineage.downstream_nodes_from_lineage is empty in {path}"
 
 
 # ===========================================================================
@@ -369,6 +372,84 @@ class TestValidationRunner:
 
         fail_results = [r for r in report["results"] if r["status"] == "FAIL"]
         assert len(fail_results) >= 1
+
+
+class TestEnforcementModeBehavior:
+    def _write_contract_and_data(self, tmpdir: str, severity: str) -> tuple[str, str, str]:
+        contract = {
+            "id": "test-mode",
+            "checks": [{
+                "check_id": "range_value",
+                "column_name": "value",
+                "check_type": "range",
+                "severity": severity,
+                "params": {"min": 0.0, "max": 1.0},
+            }]
+        }
+        data_records = [{"value": 5.0}]
+        contract_path = os.path.join(tmpdir, "contract.yaml")
+        data_path = os.path.join(tmpdir, "data.jsonl")
+        output_path = os.path.join(tmpdir, "report.json")
+        with open(contract_path, "w") as f:
+            yaml.dump(contract, f)
+        with open(data_path, "w") as f:
+            for rec in data_records:
+                f.write(json.dumps(rec) + "\n")
+        return contract_path, data_path, output_path
+
+    def test_audit_mode_never_blocks_on_critical_fail(self):
+        from contracts.runner import ValidationRunner
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            contract_path, data_path, output_path = self._write_contract_and_data(
+                tmpdir, "CRITICAL"
+            )
+            runner = ValidationRunner(contract_path, data_path, output_path, mode="AUDIT")
+            report = runner.run()
+            assert report["failed"] == 1
+            assert runner.should_block(report) is False
+
+    def test_warn_mode_blocks_only_critical_fails(self):
+        from contracts.runner import ValidationRunner
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            contract_path, data_path, output_path = self._write_contract_and_data(
+                tmpdir, "HIGH"
+            )
+            runner = ValidationRunner(contract_path, data_path, output_path, mode="WARN")
+            report = runner.run()
+            assert report["failed"] == 1
+            assert runner.should_block(report) is False
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            contract_path, data_path, output_path = self._write_contract_and_data(
+                tmpdir, "CRITICAL"
+            )
+            runner = ValidationRunner(contract_path, data_path, output_path, mode="WARN")
+            report = runner.run()
+            assert report["failed"] == 1
+            assert runner.should_block(report) is True
+
+    def test_enforce_mode_blocks_high_or_critical_fails(self):
+        from contracts.runner import ValidationRunner
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            contract_path, data_path, output_path = self._write_contract_and_data(
+                tmpdir, "HIGH"
+            )
+            runner = ValidationRunner(contract_path, data_path, output_path, mode="ENFORCE")
+            report = runner.run()
+            assert report["failed"] == 1
+            assert runner.should_block(report) is True
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            contract_path, data_path, output_path = self._write_contract_and_data(
+                tmpdir, "CRITICAL"
+            )
+            runner = ValidationRunner(contract_path, data_path, output_path, mode="ENFORCE")
+            report = runner.run()
+            assert report["failed"] == 1
+            assert runner.should_block(report) is True
 
 
 # ===========================================================================

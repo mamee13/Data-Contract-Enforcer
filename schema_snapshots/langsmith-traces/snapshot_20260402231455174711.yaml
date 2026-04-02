@@ -154,6 +154,10 @@ checks:
   column_name: outputs
   check_type: not_null
   severity: CRITICAL
+- check_id: not_null_error
+  column_name: error
+  check_type: not_null
+  severity: CRITICAL
 - check_id: not_null_start_time
   column_name: start_time
   check_type: not_null
@@ -236,6 +240,10 @@ checks:
   severity: WARN
 - check_id: not_null_tags
   column_name: tags
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_parent_run_id
+  column_name: parent_run_id
   check_type: not_null
   severity: CRITICAL
 - check_id: not_null_session_id

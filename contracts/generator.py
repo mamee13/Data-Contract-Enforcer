@@ -30,8 +30,8 @@ KEY_OVERRIDES = {
         "meta": "metadata"
     },
     "langsmith-traces": {
-        "id": "trace_id",
-        "name": "run_name"
+        "trace_id": "id",
+        "run_name": "name"
     }
 }
 
@@ -111,14 +111,23 @@ NESTED_PROFILES: dict[str, list[dict[str, Any]]] = {
 
 
 class ContractGenerator:
-    def __init__(self, source: str, contract_id: str, lineage_path: str, output_path: str):
+    def __init__(
+        self,
+        source: str,
+        contract_id: str,
+        lineage_path: str,
+        output_path: str,
+        registry_path: str,
+    ):
         self.source = source
         self.contract_id = contract_id
         self.lineage_path = lineage_path
         self.output_path = output_path
+        self.registry_path = registry_path
         self.df: Optional[pd.DataFrame] = None
         self.records: list[dict] = []
         self.lineage_context: list[dict[str, str]] = []
+        self.registry_subscribers: list[dict[str, Any]] = []
 
     def load_data(self):
         """Loads JSONL records into a Pandas DataFrame."""
@@ -129,21 +138,21 @@ class ContractGenerator:
         self.df = pd.DataFrame(self.records)
 
     def load_lineage(self):
-        """Extracts downstream nodes from the lineage graph as context."""
+        """Extracts downstream nodes from the latest lineage snapshot as context."""
         if not self.lineage_path or not os.path.exists(self.lineage_path):
             return
         try:
-            nodes: list[dict] = []
+            latest_record: Optional[dict] = None
             with open(self.lineage_path, "r") as f:
                 for raw_line in f:
                     raw_line = raw_line.strip()
                     if not raw_line:
                         continue
                     try:
-                        record = json.loads(raw_line)
-                        nodes.extend(record.get("nodes", []))
+                        latest_record = json.loads(raw_line)
                     except json.JSONDecodeError:
                         continue
+            nodes = latest_record.get("nodes", []) if latest_record else []
             if nodes:
                 self.lineage_context = [
                     {"id": node.get("node_id"), "type": node.get("type")}
@@ -153,6 +162,27 @@ class ContractGenerator:
                 print(f"Warning: no lineage nodes found in {self.lineage_path}")
         except Exception as exc:
             print(f"Warning: could not load lineage from {self.lineage_path}: {exc}")
+
+    def load_registry(self):
+        """Load registry subscribers for the current contract."""
+        if not self.registry_path or not os.path.exists(self.registry_path):
+            return
+        try:
+            with open(self.registry_path, "r") as f:
+                registry = yaml.safe_load(f) or {}
+            subs = registry.get("subscriptions", [])
+            for sub in subs:
+                if sub.get("contract_id") == self.contract_id:
+                    self.registry_subscribers.append({
+                        "subscriber_id": sub.get("subscriber_id"),
+                        "subscriber_team": sub.get("subscriber_team"),
+                        "fields_consumed": sub.get("fields_consumed", []),
+                        "breaking_fields": sub.get("breaking_fields", []),
+                        "validation_mode": sub.get("validation_mode"),
+                        "contact": sub.get("contact"),
+                    })
+        except Exception as exc:
+            print(f"Warning: could not load registry from {self.registry_path}: {exc}")
 
     def _get_description(self, col: str) -> str:
         descriptions = {
@@ -191,13 +221,17 @@ class ContractGenerator:
         """Infer contract checks from column name, type, and value distribution."""
         checks: list[dict[str, Any]] = []
 
-        # Not null for every column
-        checks.append({
-            "check_id": f"not_null_{mapped_name}",
-            "column_name": mapped_name,
-            "check_type": "not_null",
-            "severity": "CRITICAL"
-        })
+        # Not null for every column, except known nullable fields
+        nullable_overrides = set()
+        if self.contract_id == "langsmith-traces":
+            nullable_overrides.update({"error", "parent_run_id"})
+        if mapped_name not in nullable_overrides:
+            checks.append({
+                "check_id": f"not_null_{mapped_name}",
+                "column_name": mapped_name,
+                "check_type": "not_null",
+                "severity": "CRITICAL"
+            })
 
         # Regex format check for known identifier/format fields
         if mapped_name in REGEX_PATTERNS:
@@ -391,6 +425,7 @@ class ContractGenerator:
     def generate_contract(self) -> None:
         self.load_data()
         self.load_lineage()
+        self.load_registry()
 
         if self.df is None or self.df.empty:
             print("No records found in source.")
@@ -468,6 +503,29 @@ class ContractGenerator:
                 "params": {"min": 1, "max": None},
                 "severity": "CRITICAL"
             })
+            checks.append({
+                "check_id": "payload_schema_per_event_type",
+                "column_name": "payload",
+                "check_type": "json_schema_per_event_type",
+                "params": {
+                    "registry_path": "contract_registry/event_schemas.yaml",
+                    "event_type_field": "event_type",
+                    "payload_field": "payload",
+                },
+                "severity": "CRITICAL"
+            })
+
+        if self.contract_id == "week2-verdict-records":
+            checks.append({
+                "check_id": "fk_target_ref_code_refs_file",
+                "column_name": "target_ref",
+                "check_type": "foreign_key",
+                "params": {
+                    "ref_path": "outputs/week1/intent_records.jsonl",
+                    "ref_field": "code_refs[*].file",
+                },
+                "severity": "CRITICAL",
+            })
 
         contract = {
             "bitol_version": "1.1.0",
@@ -476,7 +534,12 @@ class ContractGenerator:
             "owner": "data-governance-team",
             "description": f"Generated contract for {self.contract_id}",
             "lineage": {
-                "downstream": self.lineage_context
+                "registry_subscribers": self.registry_subscribers,
+                "downstream_nodes_from_lineage": self.lineage_context,
+                "note": (
+                    "Blast radius is computed from registry subscribers; "
+                    "lineage nodes are enrichment only."
+                ),
             },
             "columns": columns,
             "checks": checks
@@ -667,6 +730,8 @@ def main():
                         help="Contract ID (inferred from source filename if omitted)")
     parser.add_argument("--lineage", default="outputs/week4/lineage_snapshots.jsonl",
                         help="Path to lineage snapshot JSONL")
+    parser.add_argument("--registry", default="contract_registry/subscriptions.yaml",
+                        help="Path to contract registry YAML")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
@@ -680,7 +745,13 @@ def main():
     if os.path.isdir(output_path):
         output_path = os.path.join(output_path, f"{contract_id}.yaml")
 
-    generator = ContractGenerator(args.source, contract_id, args.lineage, output_path)
+    generator = ContractGenerator(
+        args.source,
+        contract_id,
+        args.lineage,
+        output_path,
+        args.registry,
+    )
     generator.generate_contract()
 
 

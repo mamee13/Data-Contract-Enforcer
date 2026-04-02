@@ -30,13 +30,13 @@ lineage:
   note: Blast radius is computed from registry subscribers; lineage nodes are enrichment
     only.
 columns:
-- name: id
+- name: trace_id
   data_type: string
-  description: Id field.
+  description: Trace Id field.
   llm_annotations: []
-- name: name
+- name: run_name
   data_type: string
-  description: Name field.
+  description: Run Name field.
   llm_annotations: []
 - name: run_type
   data_type: string
@@ -91,16 +91,20 @@ columns:
   description: Session Id field.
   llm_annotations: []
 checks:
-- check_id: not_null_id
-  column_name: id
+- check_id: not_null_trace_id
+  column_name: trace_id
   check_type: not_null
   severity: CRITICAL
-- check_id: not_null_name
-  column_name: name
+- check_id: unique_trace_id
+  column_name: trace_id
+  check_type: unique
+  severity: CRITICAL
+- check_id: not_null_run_name
+  column_name: run_name
   check_type: not_null
   severity: CRITICAL
-- check_id: enum_name
-  column_name: name
+- check_id: enum_run_name
+  column_name: run_name
   check_type: enum
   params:
     values:
@@ -152,6 +156,10 @@ checks:
   severity: CRITICAL
 - check_id: not_null_outputs
   column_name: outputs
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_error
+  column_name: error
   check_type: not_null
   severity: CRITICAL
 - check_id: not_null_start_time
@@ -236,6 +244,10 @@ checks:
   severity: WARN
 - check_id: not_null_tags
   column_name: tags
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_parent_run_id
+  column_name: parent_run_id
   check_type: not_null
   severity: CRITICAL
 - check_id: not_null_session_id

@@ -8,7 +8,7 @@ and git blame integration.
 Usage:
     python contracts/attributor.py --violation validation_reports/violated_run.json \
                                    --lineage outputs/week4/lineage_snapshots.jsonl \
-                                   --contract generated_contracts/week3_extractions.yaml \
+                                   --contract generated_contracts/week3-document-refinery-extractions.yaml \
                                    --registry contract_registry/subscriptions.yaml \
                                    --output violation_log/violations.jsonl
 """

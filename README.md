@@ -41,16 +41,16 @@ python contracts/generator.py \
   --source outputs/week3/extractions.jsonl \
   --contract-id week3-document-refinery-extractions \
   --lineage outputs/week4/lineage_snapshots.jsonl \
-  --output generated_contracts/week3_extractions.yaml
+  --output generated_contracts/week3-document-refinery-extractions.yaml
 ```
 
-**Expected output:** `generated_contracts/week3_extractions.yaml` with min 8 clauses
+**Expected output:** `generated_contracts/week3-document-refinery-extractions.yaml` with min 8 clauses
 
 ### Step 2: Run Validation (Clean Data)
 
 ```bash
 python contracts/runner.py \
-  --contract generated_contracts/week3_extractions.yaml \
+  --contract generated_contracts/week3-document-refinery-extractions.yaml \
   --data outputs/week3/extractions.jsonl \
   --output validation_reports/clean_run.json
 ```
@@ -69,7 +69,7 @@ python create_violation.py
 
 ```bash
 python contracts/runner.py \
-  --contract generated_contracts/week3_extractions.yaml \
+  --contract generated_contracts/week3-document-refinery-extractions.yaml \
   --data outputs/week3/extractions_violated.jsonl \
   --output validation_reports/violated_run.json
 ```
@@ -82,7 +82,7 @@ python contracts/runner.py \
 python contracts/attributor.py \
   --violation validation_reports/violated_run.json \
   --lineage outputs/week4/lineage_snapshots.jsonl \
-  --contract generated_contracts/week3_extractions.yaml \
+  --contract generated_contracts/week3-document-refinery-extractions.yaml \
   --registry contract_registry/subscriptions.yaml \
   --output violation_log/violations.jsonl
 ```

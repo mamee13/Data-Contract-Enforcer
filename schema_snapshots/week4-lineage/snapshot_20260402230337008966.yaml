@@ -4,50 +4,84 @@ name: Week4 Lineage
 owner: data-governance-team
 description: Generated contract for week4-lineage
 lineage:
-  downstream:
+  registry_subscribers:
+  - subscriber_id: week7-enforcer
+    subscriber_team: week7
+    fields_consumed:
+    - nodes
+    - edges
+    - git_commit
+    breaking_fields:
+    - field: nodes
+      reason: lineage traversal depends on node metadata for blame chain
+    - field: edges
+      reason: lineage traversal depends on edge connectivity
+    validation_mode: AUDIT
+    contact: week7-team@org.com
+  downstream_nodes_from_lineage:
   - id: file::src/__init__.py
     type: FILE
   - id: file::function:src/orchestrator.py::__init__
     type: FILE
   - id: file::src/orchestrator.py
     type: FILE
+  note: Blast radius is computed from registry subscribers; lineage nodes are enrichment
+    only.
 columns:
 - name: snapshot_id
   data_type: string
-  description: Field representing snapshot_id.
+  description: Snapshot Id field.
   llm_annotations: []
 - name: codebase_root
   data_type: string
-  description: Field representing codebase_root.
+  description: Codebase Root field.
   llm_annotations: []
 - name: git_commit
   data_type: string
-  description: Field representing git_commit.
+  description: Git Commit field.
   llm_annotations: []
 - name: nodes
   data_type: string
-  description: Field representing nodes.
+  description: Nodes field.
   llm_annotations: []
 - name: edges
   data_type: string
-  description: Field representing edges.
+  description: Edges field.
   llm_annotations: []
 - name: captured_at
   data_type: string
-  description: Field representing captured_at.
+  description: Captured At field.
   llm_annotations: []
 checks:
 - check_id: not_null_snapshot_id
   column_name: snapshot_id
   check_type: not_null
   severity: CRITICAL
+- check_id: unique_snapshot_id
+  column_name: snapshot_id
+  check_type: unique
+  severity: CRITICAL
 - check_id: not_null_codebase_root
   column_name: codebase_root
   check_type: not_null
   severity: CRITICAL
+- check_id: enum_codebase_root
+  column_name: codebase_root
+  check_type: enum
+  params:
+    values:
+    - /home/mamee13/Documents/new/brownfield-codebase-cartographer
+  severity: CRITICAL
 - check_id: not_null_git_commit
   column_name: git_commit
   check_type: not_null
+  severity: CRITICAL
+- check_id: enum_git_commit
+  column_name: git_commit
+  check_type: enum
+  params:
+    values:
+    - 77bc488cdd5f1b9da8b4a161a0e259687b8f7df6
   severity: CRITICAL
 - check_id: not_null_nodes
   column_name: nodes

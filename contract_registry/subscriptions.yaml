@@ -2,6 +2,17 @@
 # Each entry represents a consumer's declared dependency on a contract.
 
 subscriptions:
+  - contract_id: week1-intent-records
+    subscriber_id: week2-courtroom
+    subscriber_team: week2
+    fields_consumed: [code_refs, governance_tags, created_at]
+    breaking_fields:
+      - field: code_refs.file
+        reason: verdict.target_ref must resolve to a code_refs.file path
+    validation_mode: AUDIT
+    registered_at: '2026-03-31T09:00:00Z'
+    contact: week2-team@org.com
+
   - contract_id: week3-document-refinery-extractions
     subscriber_id: week4-cartographer
     subscriber_team: week4

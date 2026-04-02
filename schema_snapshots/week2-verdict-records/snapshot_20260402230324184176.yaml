@@ -1,0 +1,147 @@
+bitol_version: 1.1.0
+id: week2-verdict-records
+name: Week2 Verdict Records
+owner: data-governance-team
+description: Generated contract for week2-verdict-records
+lineage:
+  registry_subscribers: []
+  downstream_nodes_from_lineage:
+  - id: file::src/__init__.py
+    type: FILE
+  - id: file::function:src/orchestrator.py::__init__
+    type: FILE
+  - id: file::src/orchestrator.py
+    type: FILE
+  note: Blast radius is computed from registry subscribers; lineage nodes are enrichment
+    only.
+columns:
+- name: verdict_id
+  data_type: string
+  description: Verdict Id field.
+  llm_annotations: []
+- name: target_ref
+  data_type: string
+  description: Target Ref field.
+  llm_annotations: []
+- name: rubric_id
+  data_type: string
+  description: Rubric Id field.
+  llm_annotations: []
+- name: rubric_version
+  data_type: string
+  description: Rubric Version field.
+  llm_annotations: []
+- name: scores
+  data_type: string
+  description: Scores field.
+  llm_annotations: []
+- name: overall_verdict
+  data_type: string
+  description: Overall Verdict field.
+  llm_annotations: []
+- name: overall_score
+  data_type: number
+  description: Overall Score field.
+  llm_annotations: []
+- name: confidence
+  data_type: number
+  description: Confidence score of the prediction. Float 0.0–1.0.
+  llm_annotations: []
+- name: evaluated_at
+  data_type: string
+  description: Evaluated At field.
+  llm_annotations: []
+checks:
+- check_id: not_null_verdict_id
+  column_name: verdict_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: unique_verdict_id
+  column_name: verdict_id
+  check_type: unique
+  severity: CRITICAL
+- check_id: not_null_target_ref
+  column_name: target_ref
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_rubric_id
+  column_name: rubric_id
+  check_type: not_null
+  severity: CRITICAL
+- check_id: unique_rubric_id
+  column_name: rubric_id
+  check_type: unique
+  severity: CRITICAL
+- check_id: not_null_rubric_version
+  column_name: rubric_version
+  check_type: not_null
+  severity: CRITICAL
+- check_id: enum_rubric_version
+  column_name: rubric_version
+  check_type: enum
+  params:
+    values:
+    - 3.0.0
+  severity: CRITICAL
+- check_id: not_null_scores
+  column_name: scores
+  check_type: not_null
+  severity: CRITICAL
+- check_id: not_null_overall_verdict
+  column_name: overall_verdict
+  check_type: not_null
+  severity: CRITICAL
+- check_id: enum_overall_verdict
+  column_name: overall_verdict
+  check_type: enum
+  params:
+    values:
+    - WARN
+  severity: CRITICAL
+- check_id: not_null_overall_score
+  column_name: overall_score
+  check_type: not_null
+  severity: CRITICAL
+- check_id: range_overall_score
+  column_name: overall_score
+  check_type: range
+  params:
+    min: 3.5
+    max: 3.5
+  severity: WARN
+- check_id: mean_drift_overall_score
+  column_name: overall_score
+  check_type: drift
+  params:
+    baseline_mean: 3.5
+    std_dev: 0.0
+  severity: WARN
+- check_id: not_null_confidence
+  column_name: confidence
+  check_type: not_null
+  severity: CRITICAL
+- check_id: range_confidence
+  column_name: confidence
+  check_type: range
+  params:
+    min: 0.82
+    max: 0.82
+  severity: WARN
+- check_id: mean_drift_confidence
+  column_name: confidence
+  check_type: drift
+  params:
+    baseline_mean: 0.82
+    std_dev: 0.0
+  severity: WARN
+- check_id: not_null_evaluated_at
+  column_name: evaluated_at
+  check_type: not_null
+  severity: CRITICAL
+- check_id: fk_target_ref_code_refs_file
+  column_name: target_ref
+  check_type: foreign_key
+  params:
+    ref_path: outputs/week1/intent_records.jsonl
+    ref_field: code_refs[*].file
+  severity: CRITICAL

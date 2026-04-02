@@ -6,9 +6,10 @@ Executes all contract checks on a dataset snapshot and produces a structured
 validation report in JSON format.
 
 Usage:
-    python contracts/runner.py --contract generated_contracts/week3_extractions.yaml \
+    python contracts/runner.py --contract generated_contracts/week3-document-refinery-extractions.yaml \
                               --data outputs/week3/extractions.jsonl \
-                              --output validation_reports/week3_20260331.json
+                              --output validation_reports/week3_20260331.json \
+                              --mode AUDIT
 """
 
 import json
@@ -18,23 +19,32 @@ import hashlib
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Iterable, Any
 
 import yaml
 import pandas as pd
+from jsonschema import Draft7Validator
 
 
 class ValidationRunner:
-    def __init__(self, contract_path: str, data_path: str, output_path: str):
+    def __init__(
+        self,
+        contract_path: str,
+        data_path: str,
+        output_path: str,
+        mode: str = "AUDIT",
+    ):
         self.contract_path = contract_path
         self.data_path = data_path
         self.output_path = output_path
+        self.mode = mode.upper()
         self.contract = None
         self.data: Optional[pd.DataFrame] = None
         self.records: list[dict] = []
         self.baselines: dict = self._load_baselines()
         self.results: list[dict] = []
         self.report_id = str(uuid.uuid4())
+        self._schema_registry_cache: dict[str, dict] = {}
 
     def _load_baselines(self) -> dict:
         """Load statistical baselines if they exist."""
@@ -106,6 +116,30 @@ class ValidationRunner:
 
         return values
 
+    @staticmethod
+    def _extract_nested_values_from_records(
+        records: Iterable[dict],
+        path_pattern: str,
+        include_missing_as_none: bool = False,
+    ) -> list:
+        values: list[Any] = []
+        if "[*]." in path_pattern:
+            array_part, field = path_pattern.split("[*].", 1)
+            for record in records:
+                for item in record.get(array_part, []):
+                    if isinstance(item, dict):
+                        if field in item or include_missing_as_none:
+                            values.append(item.get(field))
+        else:
+            for record in records:
+                val = record.get(path_pattern)
+                if val is not None:
+                    if isinstance(val, list):
+                        values.extend(val)
+                    else:
+                        values.append(val)
+        return values
+
     def run_checks(self):
         """Run all checks defined in the contract."""
         if not self.contract or not self.records:
@@ -155,6 +189,10 @@ class ValidationRunner:
                     self._check_array_not_empty(column_name, result)
                 elif check_type == "unique_within_group":
                     self._check_unique_within_group(column_name, params, result)
+                elif check_type == "foreign_key":
+                    self._check_foreign_key(column_name, params, result)
+                elif check_type == "json_schema_per_event_type":
+                    self._check_json_schema_per_event_type(params, result)
                 else:
                     result["status"] = "ERROR"
                     result["message"] = f"Unknown check type: {check_type}"
@@ -491,6 +529,98 @@ class ValidationRunner:
 
         result["expected"] = f"each {column_name} maps to exactly one {group_by}"
 
+    def _check_foreign_key(self, column_name: str, params: dict, result: dict):
+        """Check that values appear in a reference dataset's field."""
+        ref_path = params.get("ref_path")
+        ref_field = params.get("ref_field")
+        if not ref_path or not ref_field:
+            result["status"] = "ERROR"
+            result["message"] = "foreign_key check requires params.ref_path and params.ref_field"
+            return
+
+        if not Path(ref_path).exists():
+            result["status"] = "ERROR"
+            result["message"] = f"Reference file not found: {ref_path}"
+            return
+
+        ref_records = []
+        with open(ref_path) as f:
+            for line in f:
+                if line.strip() and not line.startswith("#"):
+                    ref_records.append(json.loads(line))
+
+        ref_values = set(
+            v for v in self._extract_nested_values_from_records(ref_records, ref_field)
+            if v is not None
+        )
+
+        if column_name in self.data.columns:
+            col_values = self.data[column_name].dropna().tolist()
+        else:
+            col_values = self._extract_nested_values(column_name)
+
+        failing = [v for v in col_values if v not in ref_values]
+
+        if failing:
+            result["status"] = "FAIL"
+            result["records_failing"] = len(failing)
+            result["sample_failing"] = failing[:5]
+            result["message"] = f"{len(failing)} values not found in reference {ref_field}"
+            result["actual_value"] = f"missing_count={len(failing)}"
+        else:
+            result["actual_value"] = "all values present in reference set"
+
+        result["expected"] = f"{column_name} in {ref_path}:{ref_field}"
+
+    def _load_schema_registry(self, registry_path: str) -> dict:
+        if registry_path in self._schema_registry_cache:
+            return self._schema_registry_cache[registry_path]
+        if not Path(registry_path).exists():
+            return {}
+        with open(registry_path) as f:
+            data = yaml.safe_load(f) or {}
+        self._schema_registry_cache[registry_path] = data
+        return data
+
+    def _check_json_schema_per_event_type(self, params: dict, result: dict):
+        """Validate payloads against an event-type-specific JSON Schema registry."""
+        registry_path = params.get("registry_path")
+        event_type_field = params.get("event_type_field", "event_type")
+        payload_field = params.get("payload_field", "payload")
+
+        if not registry_path:
+            result["status"] = "ERROR"
+            result["message"] = "json_schema_per_event_type requires params.registry_path"
+            return
+
+        registry = self._load_schema_registry(registry_path)
+        entries = registry.get("event_schemas", [])
+        schema_map = {e.get("event_type"): e.get("schema") for e in entries if e.get("event_type")}
+
+        failures = []
+        for record in self.records:
+            event_type = record.get(event_type_field)
+            payload = record.get(payload_field)
+            schema = schema_map.get(event_type)
+            if schema is None:
+                failures.append({"event_type": event_type, "error": "unregistered_event_type"})
+                continue
+            validator = Draft7Validator(schema)
+            errors = sorted(validator.iter_errors(payload), key=lambda e: e.path)
+            if errors:
+                failures.append({"event_type": event_type, "error": errors[0].message})
+
+        if failures:
+            result["status"] = "FAIL"
+            result["records_failing"] = len(failures)
+            result["sample_failing"] = failures[:5]
+            result["message"] = "Payloads failed JSON Schema validation"
+            result["actual_value"] = f"failing_events={len(failures)}"
+        else:
+            result["actual_value"] = "all payloads validated"
+
+        result["expected"] = f"payload matches registry {registry_path}"
+
     def generate_report(self) -> dict:
         """Generate the final validation report."""
         passed = sum(1 for r in self.results if r["status"] == "PASS")
@@ -504,6 +634,7 @@ class ValidationRunner:
             "contract_id": self.contract.get("id", "unknown"),
             "snapshot_id": self._compute_snapshot_id(),
             "run_timestamp": datetime.utcnow().isoformat(),
+            "mode": self.mode,
             "total_checks": len(self.results),
             "passed": passed,
             "failed": failed,
@@ -544,20 +675,36 @@ class ValidationRunner:
 
         return report
 
+    def should_block(self, report: dict) -> bool:
+        """Determine whether to block the pipeline based on mode + severity."""
+        if self.mode == "AUDIT":
+            return False
+
+        if self.mode not in {"WARN", "ENFORCE"}:
+            return False
+
+        failing = [r for r in report["results"] if r["status"] == "FAIL"]
+
+        if self.mode == "WARN":
+            return any(r["severity"] == "CRITICAL" for r in failing)
+
+        return any(r["severity"] in {"CRITICAL", "HIGH"} for r in failing)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Run contract validation checks")
     parser.add_argument("--contract", required=True, help="Path to contract YAML file")
     parser.add_argument("--data", required=True, help="Path to data JSONL file")
     parser.add_argument("--output", required=True, help="Path to output JSON report")
+    parser.add_argument("--mode", default="AUDIT",
+                        help="Enforcement mode: AUDIT, WARN, or ENFORCE")
 
     args = parser.parse_args()
 
-    runner = ValidationRunner(args.contract, args.data, args.output)
+    runner = ValidationRunner(args.contract, args.data, args.output, args.mode)
     report = runner.run()
 
-    failed_count = report["failed"]
-    sys.exit(1 if failed_count > 0 else 0)
+    sys.exit(1 if runner.should_block(report) else 0)
 
 
 if __name__ == "__main__":

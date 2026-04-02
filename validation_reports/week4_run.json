@@ -1,0 +1,122 @@
+{
+  "report_id": "b6e4a1e1-62ec-49cc-85b3-511e960d3181",
+  "contract_id": "week4-lineage",
+  "snapshot_id": "ff402f9eb1f6fe8e",
+  "run_timestamp": "2026-04-02T20:14:52.268822",
+  "mode": "WARN",
+  "total_checks": 9,
+  "passed": 9,
+  "failed": 0,
+  "warned": 0,
+  "errored": 0,
+  "results": [
+    {
+      "check_id": "not_null_snapshot_id",
+      "column_name": "snapshot_id",
+      "check_type": "not_null",
+      "status": "PASS",
+      "actual_value": "null_count=0",
+      "expected": "no null values",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "unique_snapshot_id",
+      "column_name": "snapshot_id",
+      "check_type": "unique",
+      "status": "PASS",
+      "actual_value": "unique=1",
+      "expected": "all unique",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "not_null_codebase_root",
+      "column_name": "codebase_root",
+      "check_type": "not_null",
+      "status": "PASS",
+      "actual_value": "null_count=0",
+      "expected": "no null values",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "enum_codebase_root",
+      "column_name": "codebase_root",
+      "check_type": "enum",
+      "status": "PASS",
+      "actual_value": "all values valid",
+      "expected": "values in ['/home/mamee13/Documents/new/brownfield-codebase-cartographer']",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "not_null_git_commit",
+      "column_name": "git_commit",
+      "check_type": "not_null",
+      "status": "PASS",
+      "actual_value": "null_count=0",
+      "expected": "no null values",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "enum_git_commit",
+      "column_name": "git_commit",
+      "check_type": "enum",
+      "status": "PASS",
+      "actual_value": "all values valid",
+      "expected": "values in ['77bc488cdd5f1b9da8b4a161a0e259687b8f7df6']",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "not_null_nodes",
+      "column_name": "nodes",
+      "check_type": "not_null",
+      "status": "PASS",
+      "actual_value": "null_count=0",
+      "expected": "no null values",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "not_null_edges",
+      "column_name": "edges",
+      "check_type": "not_null",
+      "status": "PASS",
+      "actual_value": "null_count=0",
+      "expected": "no null values",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    },
+    {
+      "check_id": "not_null_captured_at",
+      "column_name": "captured_at",
+      "check_type": "not_null",
+      "status": "PASS",
+      "actual_value": "null_count=0",
+      "expected": "no null values",
+      "severity": "CRITICAL",
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
+    }
+  ]
+}
