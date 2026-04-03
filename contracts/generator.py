@@ -1,10 +1,19 @@
 import argparse
 import json
 import os
+import time
+import urllib.error
+import urllib.request
 import yaml
 import pandas as pd
 from datetime import datetime
 from typing import Any, Optional
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv optional — fall back to env vars already set
 
 
 # Custom YAML dumper that quotes strings containing regex special chars
@@ -430,6 +439,65 @@ class ContractGenerator:
 
         return checks
 
+    def _annotate_column_with_llm(self, col_name: str, samples: list) -> list[str]:
+        """Call OpenRouter to semantically annotate an ambiguous column.
+
+        Returns a list of annotation strings to merge into llm_annotations.
+        Falls back to [] silently if the API key is missing or the call fails.
+        """
+        api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+        if not api_key:
+            return []
+
+        model = os.environ.get("OPENROUTER_MODEL", "google/gemma-3-4b-it:free")
+
+        sample_str = ", ".join(repr(s) for s in samples[:5])
+        prompt = (
+            f"You are a data contract analyst. Given a column named '{col_name}' "
+            f"with sample values: [{sample_str}], answer in one short sentence: "
+            "Is this column semantically ambiguous or overloaded? "
+            "If yes, explain why. If no, say 'unambiguous'. "
+            "Reply with ONLY the sentence, no preamble."
+        )
+
+        payload = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 80,
+            "temperature": 0.2,
+        }).encode()
+
+        req = urllib.request.Request(
+            "https://openrouter.ai/api/v1/chat/completions",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/data-contract-enforcer",
+            },
+            method="POST",
+        )
+
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    body = json.loads(resp.read())
+                text = body["choices"][0]["message"]["content"].strip()
+                # Normalise to a compact annotation tag
+                if "unambiguous" in text.lower():
+                    return []
+                return [f"llm_note:{text[:120]}"]
+            except urllib.error.HTTPError as exc:
+                if exc.code == 429 and attempt < 2:
+                    time.sleep(3 * (attempt + 1))
+                    continue
+                print(f"  Warning: LLM annotation failed for '{col_name}': {exc}")
+                return []
+            except Exception as exc:
+                print(f"  Warning: LLM annotation failed for '{col_name}': {exc}")
+                return []
+        return []
+
     def generate_contract(self) -> None:
         self.load_data()
         self.load_lineage()
@@ -466,6 +534,37 @@ class ContractGenerator:
                         col_annotations.append(
                             f"suspicious_distribution:mean={round(col_mean, 6)}"
                         )
+
+            # LLM annotation for columns that are structurally ambiguous:
+            # - known complex/nested fields (meta, payload, metadata)
+            # - object columns whose name isn't in the known description map
+            # - any column already carrying a suspicious_distribution flag
+            _known_cols = set(self._get_description.__func__.__code__.co_consts)  # type: ignore[attr-defined]
+            is_known = mapped_name in {
+                "intent_id", "text", "predicted_intent", "confidence", "aggregate_id",
+                "occurred_at", "recorded_at", "payload", "event_id", "event_type",
+                "aggregate_type", "sequence_number", "schema_version", "doc_id",
+                "source_path", "source_hash", "extracted_facts", "entities",
+                "extraction_model", "processing_time_ms", "token_count",
+                "extracted_at", "metadata",
+            }
+            should_annotate = (
+                col in ["meta", "payload", "metadata"]
+                or ("object" in dtype and not is_known)
+                or any("suspicious_distribution" in a for a in col_annotations)
+            )
+            if should_annotate:
+                non_null_vals = series.dropna()
+                samples: list = (
+                    non_null_vals.iloc[:5].tolist() if len(non_null_vals) > 0 else []
+                )
+                # Flatten list/dict samples to a readable repr
+                flat_samples = [
+                    str(s)[:60] if isinstance(s, (list, dict)) else s
+                    for s in samples
+                ]
+                llm_tags = self._annotate_column_with_llm(mapped_name, flat_samples)
+                col_annotations.extend(llm_tags)
 
             columns.append({
                 "name": mapped_name,
