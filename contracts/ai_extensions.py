@@ -223,7 +223,7 @@ class AIExtensions:
             else:
                 trend = "stable"
 
-        return {
+        result: dict = {
             "total_outputs": total,
             "schema_violations": violations,
             "violation_rate": round(rate, 4),
@@ -231,6 +231,30 @@ class AIExtensions:
             "trend": trend,
             "status": "WARN" if rate > warn_threshold else "PASS",
         }
+
+        # Write a WARN entry to the AI-specific violation log when rate exceeds threshold.
+        # Written to violation_log/ai_violations.jsonl (separate from the attributor's
+        # violations.jsonl which requires blame_chain + blast_radius schema).
+        if rate > warn_threshold:
+            ai_log_path = Path("violation_log/ai_violations.jsonl")
+            ai_log_path.parent.mkdir(parents=True, exist_ok=True)
+            warn_entry = {
+                "violation_id": f"llm-output-rate-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+                "check_id": "llm_output_schema_violation_rate",
+                "detected_at": datetime.utcnow().isoformat(),
+                "status": "WARN",
+                "violation_rate": round(rate, 4),
+                "trend": trend,
+                "threshold": warn_threshold,
+                "message": (
+                    f"LLM output schema violation rate {round(rate * 100, 2)}% "
+                    f"exceeds threshold {warn_threshold * 100}%"
+                ),
+            }
+            with open(ai_log_path, "a") as vf:
+                vf.write(json.dumps(warn_entry) + "\n")
+
+        return result
 
     def validate_langsmith_traces(self, trace_records: list) -> dict:
         """Validate LangSmith trace schema."""

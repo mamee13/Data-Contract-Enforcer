@@ -318,11 +318,19 @@ class ContractGenerator:
                     "params": {"min": min_val, "max": max_val},
                     "severity": "WARN"
                 })
+
+                drift_params: dict[str, Any] = {"baseline_mean": mean_val, "std_dev": std_val}
+                # Flag suspicious distributions — mean near boundary suggests scale/unit issue
+                if mean_val > 0.99 or mean_val < 0.01:
+                    drift_params["distribution_warning"] = (
+                        f"Suspicious mean={round(mean_val, 6)}: "
+                        "possible scale or unit mismatch (expected range 0.01–0.99)"
+                    )
                 checks.append({
                     "check_id": f"mean_drift_{mapped_name}",
                     "column_name": mapped_name,
                     "check_type": "drift",
-                    "params": {"baseline_mean": mean_val, "std_dev": std_val},
+                    "params": drift_params,
                     "severity": "WARN"
                 })
 
@@ -446,11 +454,24 @@ class ContractGenerator:
                 else "boolean"
             )
 
+            # Flag suspicious numeric distributions at the column level
+            col_annotations: list[str] = (
+                ["ambiguous"] if col in ["meta", "payload", "metadata"] else []
+            )
+            if "float" in dtype or "int" in dtype:
+                non_null_series = series.dropna()
+                if not non_null_series.empty:
+                    col_mean = float(non_null_series.mean())
+                    if col_mean > 0.99 or col_mean < 0.01:
+                        col_annotations.append(
+                            f"suspicious_distribution:mean={round(col_mean, 6)}"
+                        )
+
             columns.append({
                 "name": mapped_name,
                 "data_type": col_data_type,
                 "description": self._get_description(mapped_name),
-                "llm_annotations": ["ambiguous"] if col in ["meta", "payload", "metadata"] else []
+                "llm_annotations": col_annotations,
             })
 
             checks.extend(self._infer_checks(col, mapped_name, dtype, series))

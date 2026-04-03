@@ -1,0 +1,78 @@
+{
+  "generated_at": "2026-04-03T18:50:24.925918",
+  "period": "2026-03-27 to 2026-04-03",
+  "data_health_score": 0,
+  "health_narrative": "Critical data health issues. Immediate attention required.",
+  "violations_this_week": {
+    "by_severity": {
+      "CRITICAL": 14,
+      "HIGH": 1,
+      "MEDIUM": 0,
+      "LOW": 0
+    },
+    "total": 15,
+    "top_3": [
+      {
+        "severity": "CRITICAL",
+        "check_id": "range_extracted_facts_confidence",
+        "column_name": "extracted_facts[*].confidence",
+        "records_failing": 3791,
+        "plain_language": "The extracted_facts[*].confidence field failed its range_extracted_facts_confidence check. Expected min>=0.0, max<=1.0 but found min=55.0, max=95.0. This affects 3791 records."
+      },
+      {
+        "severity": "CRITICAL",
+        "check_id": "source_hash_unique_per_doc_id",
+        "column_name": "source_hash",
+        "records_failing": 11,
+        "plain_language": "The source_hash field failed its source_hash_unique_per_doc_id check. Expected each source_hash maps to exactly one doc_id but found cross_group_values=11. This affects 11 records."
+      },
+      {
+        "severity": "CRITICAL",
+        "check_id": "fk_target_ref_code_refs_file",
+        "column_name": "target_ref",
+        "records_failing": 1,
+        "plain_language": "The target_ref field failed its fk_target_ref_code_refs_file check. Expected target_ref in outputs/week1/intent_records.jsonl:code_refs[*].file but found missing_count=1. This affects 1 records."
+      }
+    ]
+  },
+  "schema_changes": [
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "verdict": "BREAKING",
+      "breaking_count": 1,
+      "timestamp": "snapshot_20260402223605042980"
+    }
+  ],
+  "ai_system_risk": {
+    "embedding_drift_score": 0.0,
+    "embedding_drift_status": "PASS",
+    "llm_output_violation_rate": 0.0,
+    "llm_output_trend": "stable",
+    "status": "PASS"
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Resolve CRITICAL violation on 'extracted_facts[*].confidence' (check: range_extracted_facts_confidence) in contract 'week3-document-refinery-extractions'",
+      "file": "outputs/week3/extractions.jsonl",
+      "contract_clause": "range_extracted_facts_confidence",
+      "reason": "CRITICAL failure: Values outside range [0.0, 1.0] [expected: min>=0.0, max<=1.0, actual: min=55.0, max=95.0]"
+    },
+    {
+      "priority": 1,
+      "action": "Resolve CRITICAL violation on 'source_hash' (check: source_hash_unique_per_doc_id) in contract 'week3-document-refinery-extractions'",
+      "file": "generated_contracts/week3-document-refinery-extractions.yaml",
+      "contract_clause": "source_hash_unique_per_doc_id",
+      "reason": "CRITICAL failure: 11 source_hash values appear in more than one doc_id [expected: each source_hash maps to exactly one doc_id, actual: cross_group_values=11]"
+    },
+    {
+      "priority": 1,
+      "action": "Resolve CRITICAL violation on 'target_ref' (check: fk_target_ref_code_refs_file) in contract 'week2-verdict-records'",
+      "file": "generated_contracts/week2-verdict-records.yaml",
+      "contract_clause": "fk_target_ref_code_refs_file",
+      "reason": "CRITICAL failure: 1 values not found in reference code_refs[*].file [expected: target_ref in outputs/week1/intent_records.jsonl:code_refs[*].file, actual: missing_count=1]"
+    }
+  ],
+  "total_validation_reports": 17,
+  "total_violations_logged": 10
+}

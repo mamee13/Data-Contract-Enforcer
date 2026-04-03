@@ -1,0 +1,172 @@
+{
+  "generated_at": "2026-04-03T18:48:11.411875",
+  "contract_id": "week3-document-refinery-extractions",
+  "schema_diff": {
+    "old_snapshot": "snapshot_20260402230332977659",
+    "new_snapshot": "snapshot_20260403214706312666",
+    "changes": [
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "extraction_model"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "extracted_facts"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "source_hash"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "token_count"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "extracted_at"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "entities"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "processing_time_ms"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "source_path"
+      },
+      {
+        "classification": "COMPATIBLE",
+        "type": "NO_CHANGE",
+        "description": "No material change",
+        "action": "None",
+        "field": "doc_id"
+      }
+    ],
+    "breaking_changes": [],
+    "compatibility_verdict": "COMPATIBLE",
+    "verdict_message": "All changes are backward compatible"
+  },
+  "migration_impact": {
+    "exact_diff": {
+      "old_snapshot": "snapshot_20260402230332977659",
+      "new_snapshot": "snapshot_20260403214706312666",
+      "changes": [
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "extraction_model"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "extracted_facts"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "source_hash"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "token_count"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "extracted_at"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "entities"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "processing_time_ms"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "source_path"
+        },
+        {
+          "classification": "COMPATIBLE",
+          "type": "NO_CHANGE",
+          "description": "No material change",
+          "action": "None",
+          "field": "doc_id"
+        }
+      ],
+      "breaking_changes": [],
+      "compatibility_verdict": "COMPATIBLE",
+      "verdict_message": "All changes are backward compatible"
+    },
+    "compatibility_verdict": "COMPATIBLE",
+    "blast_radius": {
+      "affected_contracts": [
+        "week3-document-refinery-extractions"
+      ],
+      "affected_consumers": [
+        "week4-cartographer",
+        "week5-event-sourcing"
+      ],
+      "estimated_impact": "LOW"
+    },
+    "migration_checklist": [],
+    "rollback_plan": {
+      "steps": [
+        "Revert contract to previous snapshot",
+        "Re-run validation on baseline data",
+        "Verify all checks pass",
+        "If using CI/CD, rollback the pipeline version"
+      ],
+      "estimated_time": "15 minutes",
+      "risk_level": "LOW"
+    }
+  }
+}

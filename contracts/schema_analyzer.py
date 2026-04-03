@@ -20,9 +20,10 @@ import yaml
 
 
 class SchemaEvolutionAnalyzer:
-    def __init__(self, contract_id: str, output_path: str):
+    def __init__(self, contract_id: str, output_path: str, since: str = ""):
         self.contract_id = contract_id
         self.output_path = output_path
+        self.since = since  # ISO date string — filter snapshots older than this
         self.snapshots: list[dict] = []
 
     def load_snapshots(self):
@@ -36,6 +37,19 @@ class SchemaEvolutionAnalyzer:
         snapshot_files = sorted(snapshot_dir.glob("*.yaml"))
 
         for sf in snapshot_files:
+            # Apply --since filter: skip snapshots whose stem timestamp is before the cutoff.
+            # Snapshot stems are formatted as "snapshot_YYYYMMDDHHMMSSffffff".
+            if self.since:
+                stem = sf.stem  # e.g. "snapshot_20260401120000000000"
+                ts_part = stem.replace("snapshot_", "")
+                try:
+                    snap_dt = datetime.strptime(ts_part[:14], "%Y%m%d%H%M%S")
+                    since_dt = datetime.fromisoformat(self.since)
+                    if snap_dt < since_dt:
+                        continue
+                except ValueError:
+                    pass  # unparseable stem — include it
+
             with open(sf) as f:
                 self.snapshots.append(
                     {"path": str(sf), "timestamp": sf.stem, "data": yaml.safe_load(f)}
@@ -71,10 +85,36 @@ class SchemaEvolutionAnalyzer:
             }
 
         if old_clause.get("type") != new_clause.get("type"):
+            old_type = old_clause.get("type", "")
+            new_type = new_clause.get("type", "")
+
+            # Explicit narrow type detection: float 0.0–1.0 → int 0–100 scale change
+            # This is the canonical breaking case (confidence score rescaling).
+            old_max = old_clause.get("maximum")
+            new_max = new_clause.get("maximum")
+            is_float_to_int = old_type in ("number", "float") and new_type in ("integer", "int")
+            is_scale_expansion = (
+                old_max is not None
+                and new_max is not None
+                and float(new_max) >= float(old_max) * 10
+            )
+            if is_float_to_int or is_scale_expansion:
+                return {
+                    "classification": "BREAKING",
+                    "severity": "CRITICAL",
+                    "type": "NARROW_TYPE",
+                    "description": (
+                        f"Type narrowed from {old_type} (max={old_max}) "
+                        f"to {new_type} (max={new_max}): "
+                        "scale change breaks all downstream range and drift checks"
+                    ),
+                    "action": "Immediate migration required — re-baseline all statistical checks",
+                }
+
             return {
                 "classification": "BREAKING",
                 "type": "TYPE_CHANGE",
-                "description": f"Type changed from {old_clause.get('type')} to {new_clause.get('type')}",
+                "description": f"Type changed from {old_type} to {new_type}",
                 "action": "Requires migration plan",
             }
 
@@ -347,10 +387,15 @@ def main():
     parser = argparse.ArgumentParser(description="Analyze schema evolution")
     parser.add_argument("--contract-id", required=True, help="Contract ID to analyze")
     parser.add_argument("--output", required=True, help="Path to output JSON report")
+    parser.add_argument(
+        "--since",
+        default="",
+        help="ISO 8601 date (e.g. 2026-03-01) — only diff snapshots on or after this date",
+    )
 
     args = parser.parse_args()
 
-    analyzer = SchemaEvolutionAnalyzer(args.contract_id, args.output)
+    analyzer = SchemaEvolutionAnalyzer(args.contract_id, args.output, since=args.since)
     result = analyzer.run()
 
     if result["schema_diff"]["compatibility_verdict"] == "BREAKING":
