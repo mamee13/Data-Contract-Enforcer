@@ -58,8 +58,6 @@ columns:
   description: Wall-clock extraction time in milliseconds. Must be positive.
   llm_annotations:
   - suspicious_distribution:mean=1053386.313433
-  - llm_note:Yes, this column is semantically ambiguous because it represents processing
-    time in milliseconds but has two distinct va
 - name: token_count
   data_type: string
   description: Token usage object with integer fields input and output.

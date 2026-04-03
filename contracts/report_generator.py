@@ -219,50 +219,78 @@ class ReportGenerator:
         }
 
     def get_recommendations(self) -> list[dict]:
-        """Get recommended actions."""
+        """Get recommended actions derived from live violation data."""
         recommendations: list[dict] = []
 
+        # Build a lookup of violation blame chains keyed by check_id for path resolution
+        blame_by_check: dict[str, str] = {}
+        for v in self.violations:
+            cid = v.get("check_id", "")
+            chain = v.get("blame_chain", [])
+            if chain and cid:
+                top = chain[0]
+                fp = top.get("file_path", "")
+                if fp and fp != "unknown":
+                    blame_by_check[cid] = fp
+
         for report in self.validation_reports:
+            contract_id = report.get("contract_id", "unknown")
             for result in report.get("results", []):
-                if result.get("status") == "FAIL":
-                    severity = result.get("severity", "")
-                    column = result.get("column_name", "")
+                if result.get("status") != "FAIL":
+                    continue
+                severity = result.get("severity", "")
+                if severity != "CRITICAL":
+                    continue
 
-                    if severity == "CRITICAL":
-                        if "confidence" in column.lower():
-                            recommendations.append(
-                                {
-                                    "priority": 1,
-                                    "action": "Fix confidence scale in Week 3 extraction code",
-                                    "file": "src/week3/extractor.py",
-                                    "reason": "CRITICAL violation affecting downstream consumers",
-                                }
-                            )
-                        elif "processing_time" in column.lower():
-                            recommendations.append(
-                                {
-                                    "priority": 2,
-                                    "action": "Review processing time variance",
-                                    "file": "src/week3/processor.py",
-                                    "reason": "Processing time drift detected",
-                                }
-                            )
+                check_id = result.get("check_id", "")
+                column = result.get("column_name", "")
 
-        recommendations.sort(key=lambda x: x.get("priority", 99))
+                # Resolve the upstream file from the blame chain; fall back to contract path
+                upstream_file = blame_by_check.get(
+                    check_id,
+                    f"generated_contracts/{contract_id}.yaml",
+                )
 
-        if len(recommendations) < 3:
-            recommendations.extend(
-                [
+                recommendations.append(
                     {
-                        "priority": 3,
-                        "action": "Run ContractGenerator to update contracts",
-                        "file": "contracts/generator.py",
-                        "reason": "Ensure contracts reflect current schema",
+                        "priority": 1,
+                        "action": (
+                            f"Resolve CRITICAL violation on '{column}' "
+                            f"(check: {check_id}) in contract '{contract_id}'"
+                        ),
+                        "file": upstream_file,
+                        "contract_clause": check_id,
+                        "reason": (
+                            f"CRITICAL failure: {result.get('message', '')} "
+                            f"[expected: {result.get('expected', '')}, "
+                            f"actual: {result.get('actual_value', '')}]"
+                        ),
                     }
-                ]
+                )
+
+        # Deduplicate by file+clause, keep highest priority
+        seen: set[str] = set()
+        deduped: list[dict] = []
+        for rec in recommendations:
+            key = f"{rec['file']}::{rec['contract_clause']}"
+            if key not in seen:
+                seen.add(key)
+                deduped.append(rec)
+
+        deduped.sort(key=lambda x: x.get("priority", 99))
+
+        if not deduped:
+            deduped.append(
+                {
+                    "priority": 3,
+                    "action": "Re-run ContractGenerator to refresh contracts from latest data",
+                    "file": "contracts/generator.py",
+                    "contract_clause": "N/A",
+                    "reason": "No CRITICAL violations detected — routine maintenance",
+                }
             )
 
-        return recommendations[:3]
+        return deduped[:3]
 
     def generate_pdf(self, report: dict, pdf_path: str):
         """Generate PDF from report_data.json using weasyprint or reportlab."""
