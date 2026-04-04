@@ -22,9 +22,26 @@ subscriptions:
         reason: used for node ranking; scale change breaks ordering
       - field: doc_id
         reason: primary key for node identity in lineage graph
+      - field: source_hash
+        reason: deduplication check uses source_hash unique per doc_id
     validation_mode: ENFORCE
     registered_at: '2026-03-31T09:00:00Z'
     contact: week4-team@org.com
+
+  - contract_id: week3-document-refinery-extractions
+    subscriber_id: week7-enforcer
+    subscriber_team: week7
+    fields_consumed: [doc_id, extracted_facts, metadata]
+    breaking_fields:
+      - field: extracted_facts.confidence
+        reason: confidence range and drift checks power enforcer alerting
+      - field: doc_id
+        reason: prompt input schema validation depends on doc_id
+      - field: source_path
+        reason: prompt input schema validation depends on source_path
+    validation_mode: AUDIT
+    registered_at: '2026-04-04T09:00:00Z'
+    contact: week7-team@org.com
 
   - contract_id: week4-lineage
     subscriber_id: week7-enforcer
@@ -35,6 +52,8 @@ subscriptions:
         reason: lineage traversal depends on node metadata for blame chain
       - field: edges
         reason: lineage traversal depends on edge connectivity
+      - field: nodes.metadata.path
+        reason: upstream file path resolution for git attribution
     validation_mode: AUDIT
     registered_at: '2026-03-31T09:00:00Z'
     contact: week7-team@org.com
@@ -48,6 +67,12 @@ subscriptions:
         reason: event routing and schema validation keyed on event_type
       - field: payload
         reason: payload schema validation per event_type
+      - field: recorded_at
+        reason: temporal gte checks compare recorded_at vs occurred_at
+      - field: occurred_at
+        reason: temporal gte checks compare recorded_at vs occurred_at
+      - field: sequence_number
+        reason: monotonic per aggregate validation
     validation_mode: AUDIT
     registered_at: '2026-03-31T09:00:00Z'
     contact: week7-team@org.com
@@ -61,6 +86,27 @@ subscriptions:
         reason: trace duration checks require end_time > start_time
       - field: total_tokens
         reason: total_tokens = prompt_tokens + completion_tokens
+      - field: prompt_tokens
+        reason: total_tokens consistency check
+      - field: completion_tokens
+        reason: total_tokens consistency check
+      - field: run_type
+        reason: run_type must be in allowed set
+      - field: total_cost
+        reason: total_cost must be non-negative
     validation_mode: AUDIT
     registered_at: '2026-03-31T09:00:00Z'
+    contact: week7-team@org.com
+
+  - contract_id: week2-verdict-records
+    subscriber_id: week7-enforcer
+    subscriber_team: week7
+    fields_consumed: [overall_verdict, target_ref]
+    breaking_fields:
+      - field: overall_verdict
+        reason: LLM output schema violation rate check requires valid verdict values
+      - field: target_ref
+        reason: foreign key check relies on target_ref linking to code_refs.file
+    validation_mode: AUDIT
+    registered_at: '2026-04-04T09:00:00Z'
     contact: week7-team@org.com

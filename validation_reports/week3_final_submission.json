@@ -1,12 +1,12 @@
 {
-  "report_id": "886c762a-87db-4c4f-b6c6-c6469d79171b",
+  "report_id": "611b3033-ee6e-428a-9673-e6e2faafaa05",
   "contract_id": "week3-document-refinery-extractions",
-  "snapshot_id": "be0b0a4b020a5340",
-  "run_timestamp": "2026-04-04T10:13:56.895422",
+  "snapshot_id": "6e4bf6a0fe1b11f4",
+  "run_timestamp": "2026-04-04T10:19:48.722643",
   "mode": "ENFORCE",
   "total_checks": 27,
-  "passed": 24,
-  "failed": 3,
+  "passed": 26,
+  "failed": 1,
   "warned": 0,
   "errored": 0,
   "results": [
@@ -206,31 +206,25 @@
       "check_id": "range_extracted_facts_confidence",
       "column_name": "extracted_facts[*].confidence",
       "check_type": "range",
-      "status": "FAIL",
-      "actual_value": "min=55.0, max=95.0",
+      "status": "PASS",
+      "actual_value": "min=0.5499999999999999, max=0.95",
       "expected": "min>=0.0, max<=1.0",
       "severity": "CRITICAL",
-      "records_failing": 3791,
-      "sample_failing": [
-        95.0,
-        95.0,
-        95.0,
-        95.0,
-        95.0
-      ],
-      "message": "Values outside range [0.0, 1.0]"
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
     },
     {
       "check_id": "mean_drift_extracted_facts_confidence",
       "column_name": "extracted_facts[*].confidence",
       "check_type": "drift",
-      "status": "FAIL",
-      "actual_value": "mean=94.98944869427592, z_score=14475.3",
+      "status": "PASS",
+      "actual_value": "mean=0.9498944869427589, z_score=0.0",
       "expected": "drift < 2 stddev",
       "severity": "CRITICAL",
       "records_failing": 0,
       "sample_failing": [],
-      "message": "Mean drifted 14475.3 stddev from baseline"
+      "message": "Within acceptable range (0.0 stddev)"
     },
     {
       "check_id": "unique_extracted_facts_fact_id",

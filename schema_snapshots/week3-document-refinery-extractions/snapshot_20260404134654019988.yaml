@@ -16,25 +16,8 @@ lineage:
       reason: used for node ranking; scale change breaks ordering
     - field: doc_id
       reason: primary key for node identity in lineage graph
-    - field: source_hash
-      reason: deduplication check uses source_hash unique per doc_id
     validation_mode: ENFORCE
     contact: week4-team@org.com
-  - subscriber_id: week7-enforcer
-    subscriber_team: week7
-    fields_consumed:
-    - doc_id
-    - extracted_facts
-    - metadata
-    breaking_fields:
-    - field: extracted_facts.confidence
-      reason: confidence range and drift checks power enforcer alerting
-    - field: doc_id
-      reason: prompt input schema validation depends on doc_id
-    - field: source_path
-      reason: prompt input schema validation depends on source_path
-    validation_mode: AUDIT
-    contact: week7-team@org.com
   downstream_nodes_from_lineage:
   - id: file::src/__init__.py
     type: FILE
@@ -74,7 +57,7 @@ columns:
   data_type: number
   description: Wall-clock extraction time in milliseconds. Must be positive.
   llm_annotations:
-  - suspicious_distribution:mean=1053386.313433
+  - suspicious_distribution:mean=311512.833333
 - name: token_count
   data_type: string
   description: Token usage object with integer fields input and output.
@@ -112,6 +95,10 @@ checks:
   params:
     pattern: '^[0-9a-f]{64}$'
   severity: CRITICAL
+- check_id: unique_source_hash
+  column_name: source_hash
+  check_type: unique
+  severity: CRITICAL
 - check_id: not_null_extracted_facts
   column_name: extracted_facts
   check_type: not_null
@@ -145,10 +132,10 @@ checks:
   column_name: processing_time_ms
   check_type: drift
   params:
-    baseline_mean: 1053386.3134328357
-    std_dev: 779861.3742322059
-    distribution_warning: 'Suspicious mean=1053386.313433: possible scale or unit
-      mismatch (expected range 0.01–0.99)'
+    baseline_mean: 311512.8333333333
+    std_dev: 485726.7002708104
+    distribution_warning: 'Suspicious mean=311512.833333: possible scale or unit mismatch
+      (expected range 0.01–0.99)'
   severity: WARN
 - check_id: not_null_token_count
   column_name: token_count

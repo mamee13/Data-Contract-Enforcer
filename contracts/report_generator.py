@@ -125,6 +125,19 @@ class ReportGenerator:
 
         all_failures.sort(key=lambda x: severity_order.get(x.get("severity", "LOW"), 4))
 
+        impact_by_check: dict[str, str] = {}
+        for v in self.violations:
+            cid = v.get("check_id", "")
+            blast = v.get("blast_radius", {})
+            direct = blast.get("direct_subscribers", [])
+            if cid and direct and cid not in impact_by_check:
+                impacted = []
+                for sub in direct:
+                    sid = sub.get("subscriber_id", "unknown")
+                    mode = sub.get("validation_mode", "AUDIT")
+                    impacted.append(f"{sid} ({mode})")
+                impact_by_check[cid] = ", ".join(impacted)
+
         top_violations = []
 
         for failure in all_failures[:3]:
@@ -137,7 +150,11 @@ class ReportGenerator:
             message += (
                 f"Expected {failure.get('expected')} but found {failure.get('actual_value')}. "
             )
-            message += f"This affects {records_failing} records."
+            impact = impact_by_check.get(check_id)
+            if impact:
+                message += f"This affects {records_failing} records and downstream consumers: {impact}."
+            else:
+                message += f"This affects {records_failing} records and downstream consumers."
 
             top_violations.append(
                 {

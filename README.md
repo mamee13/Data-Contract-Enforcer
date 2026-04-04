@@ -1,12 +1,12 @@
 # Data Contract Enforcer
 
-A schema integrity and lineage attribution system for your own platform. This project enforces data contracts across your Week 1-5 systems and detects violations, traces them to their source, and generates compliance reports.
+A schema integrity and lineage attribution system for your own platform. This project enforces data contracts across your Week 1-5 systems, detects violations, traces them to their source, and generates compliance reports. It also includes AI-specific extensions (embedding drift, prompt input schema validation, and LLM output schema enforcement) plus schema evolution analysis.
 
 ## Prerequisites
 
 - Python 3.11+
 - `uv` for dependency management
-- Virtual environment activated: `source .venv/bin/activate`
+- No manual virtualenv activation required (use `uv run` for commands)
 
 ## Installation
 
@@ -34,10 +34,12 @@ outputs/                  # Week 1-5 outputs + traces
 
 ## Running the Pipeline
 
+All commands below use `uv run` so they execute inside the project environment without manual activation.
+
 ### Step 1: Generate Contracts
 
 ```bash
-python contracts/generator.py \
+uv run python contracts/generator.py \
   --source outputs/week3/extractions.jsonl \
   --contract-id week3-document-refinery-extractions \
   --lineage outputs/week4/lineage_snapshots.jsonl \
@@ -49,7 +51,7 @@ python contracts/generator.py \
 ### Step 2: Run Validation (Clean Data)
 
 ```bash
-python contracts/runner.py \
+uv run python contracts/runner.py \
   --contract generated_contracts/week3-document-refinery-extractions.yaml \
   --data outputs/week3/extractions.jsonl \
   --output validation_reports/clean_run.json
@@ -60,7 +62,7 @@ python contracts/runner.py \
 ### Step 3: Inject Violation
 
 ```bash
-python create_violation.py
+uv run python create_violation.py
 ```
 
 **Expected output:** `outputs/week3/extractions_violated.jsonl` with confidence scaled 0-100
@@ -68,7 +70,7 @@ python create_violation.py
 ### Step 4: Run Validation (Violated Data)
 
 ```bash
-python contracts/runner.py \
+uv run python contracts/runner.py \
   --contract generated_contracts/week3-document-refinery-extractions.yaml \
   --data outputs/week3/extractions_violated.jsonl \
   --output validation_reports/violated_run.json
@@ -79,7 +81,7 @@ python contracts/runner.py \
 ### Step 5: Attribute the Violation
 
 ```bash
-python contracts/attributor.py \
+uv run python contracts/attributor.py \
   --violation validation_reports/violated_run.json \
   --lineage outputs/week4/lineage_snapshots.jsonl \
   --contract generated_contracts/week3-document-refinery-extractions.yaml \
@@ -92,7 +94,7 @@ python contracts/attributor.py \
 ### Step 6: Run Schema Evolution Analysis
 
 ```bash
-python contracts/schema_analyzer.py \
+uv run python contracts/schema_analyzer.py \
   --contract-id week3-document-refinery-extractions \
   --output validation_reports/schema_evolution.json
 ```
@@ -102,7 +104,7 @@ python contracts/schema_analyzer.py \
 ### Step 7: Run AI Extensions
 
 ```bash
-python contracts/ai_extensions.py \
+uv run python contracts/ai_extensions.py \
   --mode all \
   --extractions outputs/week3/extractions.jsonl \
   --verdicts outputs/week2/verdicts.jsonl \
@@ -117,7 +119,7 @@ python contracts/ai_extensions.py \
 ### Step 8: Generate Enforcer Report
 
 ```bash
-python contracts/report_generator.py \
+uv run python contracts/report_generator.py \
   --output enforcer_report/report_data.json
 ```
 
@@ -140,10 +142,10 @@ ls -la validation_reports/
 wc -l violation_log/violations.jsonl
 
 # Check health score
-cat enforcer_report/report_data.json | python3 -c "import json,sys; d=json.load(sys.stdin); print('Health Score:', d['data_health_score'])"
+cat enforcer_report/report_data.json | uv run python -c "import json,sys; d=json.load(sys.stdin); print('Health Score:', d['data_health_score'])"
 
 # Verify health score is 0-100
-python3 -c "import json; d=json.load(open('enforcer_report/report_data.json')); assert 0 <= d['data_health_score'] <= 100, 'Health score out of range'"
+uv run python -c "import json; d=json.load(open('enforcer_report/report_data.json')); assert 0 <= d['data_health_score'] <= 100, 'Health score out of range'"
 ```
 
 ## Contract Format
