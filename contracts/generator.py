@@ -162,8 +162,49 @@ class ContractGenerator:
                     except json.JSONDecodeError:
                         continue
             nodes = latest_record.get("nodes", []) if latest_record else []
+            edges = latest_record.get("edges", []) if latest_record else []
             if nodes:
-                self.lineage_context = [
+                node_by_id = {n.get("node_id"): n for n in nodes if n.get("node_id")}
+                forward_edges: dict[str, list[str]] = {}
+                for edge in edges:
+                    src = edge.get("source")
+                    tgt = edge.get("target")
+                    if src and tgt:
+                        forward_edges.setdefault(src, []).append(tgt)
+
+                # Seed start nodes based on contract id + source file name
+                source_basename = os.path.basename(self.source).lower()
+                source_stem = os.path.splitext(source_basename)[0]
+                start_nodes: list[str] = []
+                for node in nodes:
+                    node_id = node.get("node_id", "")
+                    label = node.get("label", "")
+                    path = node.get("metadata", {}).get("path", "")
+                    haystack = " ".join([node_id, label, path]).lower()
+                    if (
+                        self.contract_id.lower() in haystack
+                        or source_basename in haystack
+                        or source_stem in haystack
+                    ):
+                        start_nodes.append(node_id)
+
+                # Traverse downstream (forward edges) to collect consumer nodes
+                visited = set(start_nodes)
+                frontier = list(start_nodes)
+                downstream: list[dict[str, str]] = []
+                max_nodes = 10
+
+                while frontier and len(downstream) < max_nodes:
+                    current = frontier.pop(0)
+                    for tgt in forward_edges.get(current, []):
+                        if tgt in visited:
+                            continue
+                        visited.add(tgt)
+                        tnode = node_by_id.get(tgt, {})
+                        downstream.append({"id": tgt, "type": tnode.get("type", "UNKNOWN")})
+                        frontier.append(tgt)
+
+                self.lineage_context = downstream or [
                     {"id": node.get("node_id"), "type": node.get("type")}
                     for node in nodes[:3]
                 ]
@@ -498,6 +539,68 @@ class ContractGenerator:
                 return []
         return []
 
+    def _write_baselines(self, overrides: dict[str, str]) -> None:
+        """Write statistical baselines (mean/stddev) for numeric columns."""
+        if self.df is None or self.df.empty:
+            return
+
+        baseline_path = "schema_snapshots/baselines.json"
+        os.makedirs(os.path.dirname(baseline_path), exist_ok=True)
+
+        existing: dict[str, Any] = {}
+        if os.path.exists(baseline_path):
+            try:
+                with open(baseline_path, "r") as f:
+                    existing = json.load(f) or {}
+            except Exception:
+                existing = {}
+
+        column_stats: dict[str, Any] = existing.get("columns", {})
+
+        for col in self.df.columns:
+            mapped_name = overrides.get(col, col)
+            series = pd.to_numeric(self.df[col], errors="coerce").dropna()
+            if series.empty:
+                continue
+            column_stats[mapped_name] = {
+                "mean": float(series.mean()),
+                "stddev": float(series.std()) if len(series) > 1 else 0.0,
+                "min": float(series.min()),
+                "max": float(series.max()),
+            }
+
+        # Include nested numeric baselines where defined
+        for spec in NESTED_PROFILES.get(self.contract_id, []):
+            if spec.get("dtype") not in ("float", "int"):
+                continue
+            path = spec.get("path")
+            values = []
+            for record in self.records:
+                for item in record.get(spec.get("array_key", ""), []):
+                    val = item.get(spec.get("field", ""))
+                    if val is not None:
+                        values.append(val)
+            if not values or not path:
+                continue
+            series = pd.to_numeric(values, errors="coerce")
+            series = pd.Series(series).dropna()
+            if series.empty:
+                continue
+            column_stats[path] = {
+                "mean": float(series.mean()),
+                "stddev": float(series.std()) if len(series) > 1 else 0.0,
+                "min": float(series.min()),
+                "max": float(series.max()),
+            }
+
+        payload = {
+            "written_at": datetime.utcnow().isoformat(),
+            "contract_id": self.contract_id,
+            "columns": column_stats,
+        }
+        with open(baseline_path, "w") as f:
+            json.dump(payload, f, indent=2)
+
     def generate_contract(self) -> None:
         self.load_data()
         self.load_lineage()
@@ -664,6 +767,9 @@ class ContractGenerator:
             "columns": columns,
             "checks": checks
         }
+
+        # Persist statistical baselines for numeric columns
+        self._write_baselines(overrides)
 
         os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
         with open(self.output_path, "w") as f:

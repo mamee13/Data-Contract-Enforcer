@@ -86,18 +86,66 @@ class ViolationAttributor:
             return candidates
 
         nodes = self.lineage_snapshot.get("nodes", [])
+        edges = self.lineage_snapshot.get("edges", [])
 
+        if not nodes:
+            return candidates
+
+        # Build quick lookup maps
+        node_by_id = {n.get("node_id"): n for n in nodes if n.get("node_id")}
+        reverse_edges: dict[str, list[str]] = {}
+        for edge in edges:
+            src = edge.get("source")
+            tgt = edge.get("target")
+            if src and tgt:
+                reverse_edges.setdefault(tgt, []).append(src)
+
+        # Seed start nodes by best-effort matching on id/label/path
+        start_nodes: list[str] = []
         for node in nodes:
             node_id = node.get("node_id", "")
-            node_type = node.get("type", "")
-            metadata = node.get("metadata", {})
+            label = node.get("label", "")
+            path = node.get("metadata", {}).get("path", "")
+            haystack = " ".join([node_id, label, path]).lower()
+            if failing_system.lower() in haystack:
+                start_nodes.append(node_id)
 
-            if failing_system.lower() in node_id.lower() and node_type == "FILE":
+        if not start_nodes:
+            return candidates
+
+        # BFS upstream (reverse edges) to locate producer FILE nodes
+        visited: set[str] = set(start_nodes)
+        frontier: list[tuple[str, int]] = [(n, 0) for n in start_nodes]
+
+        while frontier:
+            current, depth = frontier.pop(0)
+            node = node_by_id.get(current, {})
+            if node.get("type") == "FILE":
+                metadata = node.get("metadata", {})
                 candidates.append(
-                    {"node_id": node_id, "path": metadata.get("path", node_id), "type": node_type}
+                    {
+                        "node_id": current,
+                        "path": metadata.get("path", current),
+                        "type": node.get("type", "FILE"),
+                        "lineage_distance": depth,
+                    }
                 )
 
-        return candidates
+            for upstream in reverse_edges.get(current, []):
+                if upstream not in visited:
+                    visited.add(upstream)
+                    frontier.append((upstream, depth + 1))
+
+        # Deduplicate by path and sort by distance
+        deduped: dict[str, dict] = {}
+        for cand in candidates:
+            key = cand.get("path", cand.get("node_id", ""))
+            if key not in deduped or cand.get("lineage_distance", 0) < deduped[key].get(
+                "lineage_distance", 0
+            ):
+                deduped[key] = cand
+
+        return sorted(deduped.values(), key=lambda x: x.get("lineage_distance", 0))
 
     def get_git_commits(self, file_path: str, days: int = 14) -> list[dict]:
         """Get recent git commits for a file."""
@@ -269,6 +317,7 @@ class ViolationAttributor:
 
         for i, file_info in enumerate(upstream_files[:5]):
             file_path = file_info.get("path", "")
+            lineage_distance = file_info.get("lineage_distance", i)
 
             if file_path and Path(file_path).exists():
                 commits = self.get_git_commits(file_path)
@@ -276,7 +325,7 @@ class ViolationAttributor:
                 for commit in commits[:3]:
                     confidence = self.compute_confidence_score(
                         commit,
-                        lineage_distance=i,
+                        lineage_distance=lineage_distance,
                         violation_timestamp=self.violation_report.get("run_timestamp", ""),
                     )
 
@@ -327,14 +376,14 @@ class ViolationAttributor:
         print(f"Loading violation report from {self.violation_path}...")
         self.load_violation_report()
 
-        print(f"Loading lineage from {self.lineage_path}...")
-        self.load_lineage()
-
         print(f"Loading contract from {self.contract_path}...")
         self.load_contract()
 
         print(f"Loading registry from {self.registry_path}...")
         self.load_registry()
+
+        print(f"Loading lineage from {self.lineage_path}...")
+        self.load_lineage()
 
         print("Loading existing violations...")
         self.load_existing_violations()

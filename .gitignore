@@ -8,6 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+.venv/
+outputs/quarantine/
+.codex
 
 # Other week repositories (not part of Week 7)
 agentic-event-ledger/

@@ -1,12 +1,12 @@
 {
-  "report_id": "886c762a-87db-4c4f-b6c6-c6469d79171b",
+  "report_id": "173125b0-430d-4700-b031-6cbc37651117",
   "contract_id": "week3-document-refinery-extractions",
-  "snapshot_id": "be0b0a4b020a5340",
-  "run_timestamp": "2026-04-04T10:13:56.895422",
+  "snapshot_id": "72eeb9a28b793739",
+  "run_timestamp": "2026-04-04T11:12:26.652950",
   "mode": "ENFORCE",
   "total_checks": 27,
-  "passed": 24,
-  "failed": 3,
+  "passed": 25,
+  "failed": 2,
   "warned": 0,
   "errored": 0,
   "results": [
@@ -39,7 +39,7 @@
       "column_name": "doc_id",
       "check_type": "unique",
       "status": "PASS",
-      "actual_value": "unique=134",
+      "actual_value": "unique=12",
       "expected": "all unique",
       "severity": "CRITICAL",
       "records_failing": 0,
@@ -159,12 +159,12 @@
       "column_name": "processing_time_ms",
       "check_type": "drift",
       "status": "PASS",
-      "actual_value": "mean=1053386.3134328357, z_score=0.0",
+      "actual_value": "mean=311512.8333333333, z_score=0.95",
       "expected": "drift < 2 stddev",
       "severity": "WARN",
       "records_failing": 0,
       "sample_failing": [],
-      "message": "Within acceptable range (0.0 stddev)"
+      "message": "Within acceptable range (0.95 stddev)"
     },
     {
       "check_id": "not_null_token_count",
@@ -332,19 +332,13 @@
       "check_id": "source_hash_unique_per_doc_id",
       "column_name": "source_hash",
       "check_type": "unique_within_group",
-      "status": "FAIL",
-      "actual_value": "cross_group_values=11",
+      "status": "PASS",
+      "actual_value": "all values unique within group",
       "expected": "each source_hash maps to exactly one doc_id",
       "severity": "CRITICAL",
-      "records_failing": 11,
-      "sample_failing": [
-        "0d41c31a787ef0cd6f4e81aef0876b4e56e8eae764bc5b8e443624f5ca18da22",
-        "162f653e2d17a9d223364bb901ad50cc3431a248e25024228a57206b954d7225",
-        "16a3d6799040d848612c60198486907ee855d60fd7db278fddb4e9408ae7b17d",
-        "1a6b4a11bdaf688fdabb7f0caf6f31a6b4734fbd795d9a3014ce5fa775e6247c",
-        "3c56946f784a96a7ee4dd3c2a60725754c833454a3f3d8337c578d4336cb10b5"
-      ],
-      "message": "11 source_hash values appear in more than one doc_id"
+      "records_failing": 0,
+      "sample_failing": [],
+      "message": ""
     }
   ]
 }

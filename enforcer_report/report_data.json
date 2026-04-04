@@ -1,34 +1,48 @@
 {
-  "generated_at": "2026-03-31T20:43:56.929202",
-  "period": "2026-03-24 to 2026-03-31",
-  "data_health_score": 72,
-  "health_narrative": "Good data health. Some warnings need attention.",
+  "generated_at": "2026-04-04T11:20:59.131447",
+  "period": "2026-03-28 to 2026-04-04",
+  "data_health_score": 0,
+  "health_narrative": "Critical data health issues. Immediate attention required.",
   "violations_this_week": {
     "by_severity": {
-      "CRITICAL": 1,
-      "HIGH": 1,
+      "CRITICAL": 22,
+      "HIGH": 0,
       "MEDIUM": 0,
       "LOW": 0
     },
-    "total": 2,
+    "total": 22,
     "top_3": [
       {
         "severity": "CRITICAL",
         "check_id": "range_extracted_facts_confidence",
         "column_name": "extracted_facts[*].confidence",
         "records_failing": 3791,
-        "plain_language": "The extracted_facts[*].confidence field failed its range_extracted_facts_confidence check. Expected min>=0.0, max<=1.0 but found min=55.0, max=95.0. This affects 3791 records."
+        "plain_language": "The extracted_facts[*].confidence field failed its range_extracted_facts_confidence check. Expected min>=0.0, max<=1.0 but found min=55.0, max=95.0. This affects 3791 records and downstream consumers: week4-cartographer (ENFORCE)."
       },
       {
-        "severity": "HIGH",
+        "severity": "CRITICAL",
         "check_id": "mean_drift_extracted_facts_confidence",
         "column_name": "extracted_facts[*].confidence",
         "records_failing": 0,
-        "plain_language": "The extracted_facts[*].confidence field failed its mean_drift_extracted_facts_confidence check. Expected drift < 2 stddev but found mean=94.98944869427592, z_score=1880.79. This affects 0 records."
+        "plain_language": "The extracted_facts[*].confidence field failed its mean_drift_extracted_facts_confidence check. Expected drift < 2 stddev but found mean=94.98944869427592, z_score=14475.3. This affects 0 records and downstream consumers: week4-cartographer (ENFORCE)."
+      },
+      {
+        "severity": "CRITICAL",
+        "check_id": "source_hash_unique_per_doc_id",
+        "column_name": "source_hash",
+        "records_failing": 11,
+        "plain_language": "The source_hash field failed its source_hash_unique_per_doc_id check. Expected each source_hash maps to exactly one doc_id but found cross_group_values=11. This affects 11 records and downstream consumers."
       }
     ]
   },
-  "schema_changes": [],
+  "schema_changes": [
+    {
+      "contract_id": "week3-document-refinery-extractions",
+      "verdict": "BREAKING",
+      "breaking_count": 1,
+      "timestamp": "snapshot_20260404141209715444"
+    }
+  ],
   "ai_system_risk": {
     "embedding_drift_score": 0.0,
     "embedding_drift_status": "PASS",
@@ -39,17 +53,26 @@
   "recommendations": [
     {
       "priority": 1,
-      "action": "Fix confidence scale in Week 3 extraction code",
-      "file": "src/week3/extractor.py",
-      "reason": "CRITICAL violation affecting downstream consumers"
+      "action": "Resolve CRITICAL violation on 'extracted_facts[*].confidence' (check: range_extracted_facts_confidence) in contract 'week3-document-refinery-extractions'",
+      "file": "outputs/week3/extractions.jsonl",
+      "contract_clause": "range_extracted_facts_confidence",
+      "reason": "CRITICAL failure: Values outside range [0.0, 1.0] [expected: min>=0.0, max<=1.0, actual: min=55.0, max=95.0]"
     },
     {
-      "priority": 3,
-      "action": "Run ContractGenerator to update contracts",
-      "file": "contracts/generator.py",
-      "reason": "Ensure contracts reflect current schema"
+      "priority": 1,
+      "action": "Resolve CRITICAL violation on 'extracted_facts[*].confidence' (check: mean_drift_extracted_facts_confidence) in contract 'week3-document-refinery-extractions'",
+      "file": "generated_contracts/week3-document-refinery-extractions.yaml",
+      "contract_clause": "mean_drift_extracted_facts_confidence",
+      "reason": "CRITICAL failure: Mean drifted 14475.3 stddev from baseline [expected: drift < 2 stddev, actual: mean=94.98944869427592, z_score=14475.3]"
+    },
+    {
+      "priority": 1,
+      "action": "Resolve CRITICAL violation on 'source_hash' (check: source_hash_unique_per_doc_id) in contract 'week3-document-refinery-extractions'",
+      "file": "generated_contracts/week3-document-refinery-extractions.yaml",
+      "contract_clause": "source_hash_unique_per_doc_id",
+      "reason": "CRITICAL failure: 11 source_hash values appear in more than one doc_id [expected: each source_hash maps to exactly one doc_id, actual: cross_group_values=11]"
     }
   ],
-  "total_validation_reports": 3,
-  "total_violations_logged": 3
+  "total_validation_reports": 21,
+  "total_violations_logged": 13
 }
