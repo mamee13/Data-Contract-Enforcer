@@ -8,6 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+.venv/
+outputs/quarantine/
+.codex
 
 # Other week repositories (not part of Week 7)
 agentic-event-ledger/
@@ -17,7 +20,6 @@ The Document Intelligence Refinery/
 
 # IDE and editor
 .idea/
-.vscode/
 *.swp
 *.swo
 
@@ -42,3 +44,6 @@ plan.md
 # Derived/large output artifacts
 outputs/week3/extractions_violated.jsonl
 schema_snapshots/embedding_baselines.npz
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
