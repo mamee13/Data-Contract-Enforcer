@@ -20,11 +20,27 @@ import yaml
 
 
 class SchemaEvolutionAnalyzer:
-    def __init__(self, contract_id: str, output_path: str, since: str = ""):
+    def __init__(
+        self,
+        contract_id: str,
+        output_path: str,
+        since: str = "",
+        registry_path: str = "contract_registry/subscriptions.yaml",
+    ):
         self.contract_id = contract_id
         self.output_path = output_path
         self.since = since  # ISO date string — filter snapshots older than this
         self.snapshots: list[dict] = []
+        self.registry_path = registry_path
+        self.registry: dict = {}
+
+    def load_registry(self):
+        """Load registry subscriptions for per-consumer analysis."""
+        if not Path(self.registry_path).exists():
+            self.registry = {}
+            return
+        with open(self.registry_path) as f:
+            self.registry = yaml.safe_load(f) or {}
 
     def load_snapshots(self):
         """Load all timestamped snapshots for the contract."""
@@ -263,13 +279,41 @@ class SchemaEvolutionAnalyzer:
 
     def generate_migration_report(self, diff_result: dict) -> dict:
         """Generate migration impact report."""
+        subscriptions = self.registry.get("subscriptions", []) if self.registry else []
+        consumers = [
+            sub.get("subscriber_id")
+            for sub in subscriptions
+            if sub.get("contract_id") == self.contract_id and sub.get("subscriber_id")
+        ]
+
         blast_radius = {
             "affected_contracts": [self.contract_id],
-            "affected_consumers": ["week4-cartographer", "week5-event-sourcing"],
+            "affected_consumers": consumers or [],
             "estimated_impact": "HIGH"
             if diff_result["compatibility_verdict"] == "BREAKING"
             else "LOW",
         }
+
+        # Per-consumer failure modes using registry subscriptions
+        per_consumer_failure_modes: list[dict] = []
+        for change in diff_result.get("breaking_changes", []):
+            field = change.get("field", "")
+            for sub in subscriptions:
+                if sub.get("contract_id") != self.contract_id:
+                    continue
+                for bf in sub.get("breaking_fields", []):
+                    bf_field = bf.get("field", "")
+                    if not bf_field:
+                        continue
+                    if field == bf_field or field.startswith(bf_field) or bf_field.startswith(field):
+                        per_consumer_failure_modes.append(
+                            {
+                                "subscriber_id": sub.get("subscriber_id"),
+                                "validation_mode": sub.get("validation_mode"),
+                                "breaking_field": bf_field,
+                                "failure_mode": bf.get("reason", "Breaking change impacts consumer"),
+                            }
+                        )
 
         migration_checklist = []
 
@@ -341,6 +385,7 @@ class SchemaEvolutionAnalyzer:
             "exact_diff": diff_result,
             "compatibility_verdict": diff_result["compatibility_verdict"],
             "blast_radius": blast_radius,
+            "per_consumer_failure_modes": per_consumer_failure_modes,
             "migration_checklist": migration_checklist,
             "rollback_plan": rollback_plan,
         }
@@ -349,6 +394,7 @@ class SchemaEvolutionAnalyzer:
         """Execute schema evolution analysis."""
         print(f"Analyzing schema evolution for {self.contract_id}...")
 
+        self.load_registry()
         self.load_snapshots()
 
         if len(self.snapshots) < 2:
@@ -392,10 +438,17 @@ def main():
         default="",
         help="ISO 8601 date (e.g. 2026-03-01) — only diff snapshots on or after this date",
     )
+    parser.add_argument(
+        "--registry",
+        default="contract_registry/subscriptions.yaml",
+        help="Path to contract registry YAML",
+    )
 
     args = parser.parse_args()
 
-    analyzer = SchemaEvolutionAnalyzer(args.contract_id, args.output, since=args.since)
+    analyzer = SchemaEvolutionAnalyzer(
+        args.contract_id, args.output, since=args.since, registry_path=args.registry
+    )
     result = analyzer.run()
 
     if result["schema_diff"]["compatibility_verdict"] == "BREAKING":

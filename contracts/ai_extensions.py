@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from jsonschema import Draft7Validator
 
 try:
     from openai import OpenAI
@@ -143,19 +144,37 @@ class AIExtensions:
 
     def validate_prompt_inputs(self, extraction_records: list) -> dict:
         """Validate prompt input schema and quarantine invalid records."""
+        schema_path = Path("generated_contracts/prompt_inputs/week3_extraction_prompt_input.json")
+        if schema_path.exists():
+            with open(schema_path) as f:
+                prompt_schema = json.load(f)
+        else:
+            prompt_schema = {
+                "type": "object",
+                "properties": {
+                    "doc_id": {"type": "string"},
+                    "source_path": {"type": "string"},
+                },
+                "required": ["doc_id", "source_path"],
+            }
+
+        validator = Draft7Validator(prompt_schema)
 
         valid_records = []
         quarantined_records = []
 
         for record in extraction_records:
-            has_required = "doc_id" in record and "source_path" in record
+            # Enforce schema against document metadata if present; otherwise validate
+            # the record itself to preserve backward compatibility with tests.
+            target = record.get("metadata", record)
 
-            if has_required:
-                valid_records.append(record)
-            else:
+            errors = sorted(validator.iter_errors(target), key=lambda e: e.path)
+            if errors:
                 quarantined_records.append(
-                    {"record": record, "error": "Missing required fields: doc_id or source_path"}
+                    {"record": record, "error": errors[0].message}
                 )
+            else:
+                valid_records.append(record)
 
         if quarantined_records:
             Path("outputs/quarantine").mkdir(parents=True, exist_ok=True)

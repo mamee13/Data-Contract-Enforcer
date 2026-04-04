@@ -1,5 +1,6 @@
 {
-  "written_at": "2026-04-02T20:16:13.918444",
+  "written_at": "2026-04-04T11:12:15.340078",
+  "contract_id": "week5-event-records",
   "columns": {
     "extracted_fact_0_confidence": {
       "mean": 0.9470149253731346,
@@ -368,10 +369,10 @@
       "max": 1776560.0
     },
     "extracted_facts[*].confidence": {
-      "mean": 94.98944869427592,
-      "stddev": 0.6495697798626804,
-      "min": 55.0,
-      "max": 95.0
+      "mean": 0.9498944869427589,
+      "stddev": 0.0064965546943232455,
+      "min": 0.5499999999999999,
+      "max": 0.95
     },
     "sequence_number": {
       "mean": 5.769926047658176,
@@ -414,6 +415,18 @@
       "stddev": 0.0,
       "min": 0.0,
       "max": 0.0
+    },
+    "extracted_facts[*].page_ref": {
+      "mean": 32.68557108942232,
+      "stddev": 30.640012127980544,
+      "min": 1.0,
+      "max": 104.0
+    },
+    "schema_version": {
+      "mean": 1.0180772391125719,
+      "stddev": 0.13328559543426277,
+      "min": 1.0,
+      "max": 2.0
     }
   }
 }
